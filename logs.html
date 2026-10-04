@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width,
+    initial-scale=1.0,
+    maximum-scale=1.0,
+    user-scalable=no,
+    viewport-fit=cover">
+  <title>مركز مراقبة وتشخيص اللعبة</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0; padding: 0;
+    }
+    body {
+      background: #030c14;
+      color: #e6f1fa;
+      font-family: -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI", Roboto, sans-serif;
+      padding: 12px;
+      direction: rtl;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      border-bottom: 1px solid #14324a;
+      padding-bottom: 10px;
+    }
+    h1 {
+      font-size: 1.1rem;
+      color: #00d2ff;
+    }
+    .back-btn {
+      background: #10263c;
+      border: 1px solid #00d2ff;
+      color: #00d2ff;
+      padding: 6px 14px;
+      border-radius: 16px;
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns:
+        repeat(auto-fit,
+        minmax(140px, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .card {
+      background: #081726;
+      border: 1px solid #1c3d5a;
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .card-title {
+      font-size: 0.72rem;
+      color: #8bb2d0;
+      margin-bottom: 4px;
+    }
+    .card-val {
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .status-ok { color: #2ed573; }
+    .status-err { color: #ff4757; }
+    .status-warn { color: #ffa502; }
+    .status-info { color: #00d2ff; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    button {
+      background: #11283d;
+      color: #fff;
+      border: 1px solid #234b6e;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    button:active {
+      background: #1b3d5c;
+    }
+    .log-box {
+      background: #050e17;
+      border: 1px solid #10263a;
+      border-radius: 8px;
+      max-height: 52vh;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.74rem;
+      padding: 6px;
+    }
+    .log-entry {
+      padding: 4px 6px;
+      border-bottom: 1px solid #0d1e2e;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .log-head {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .tag {
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 0.65rem;
+      font-weight: 700;
+    }
+    .tag-VIDEO { background: #5f27cd; }
+    .tag-ASSET { background: #0984e3; }
+    .tag-AUDIO { background: #00b894; }
+    .tag-ERROR { background: #d63031; }
+    .log-time { color: #637d94; }
+    .log-msg { color: #f5f6fa; }
+    .log-det {
+      color: #7f8c8d;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>مراقبة وتشخيص اللعبة</h1>
+    <a href="index.html" class="back-btn">
+      الرجوع للعبة
+    </a>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">فيديو المقدمة</div>
+      <div id="diag-video" class="card-val">
+        جاري الفحص...
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">حالة الزيارة</div>
+      <div id="diag-seen" class="card-val">
+        -
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">الأصوات المحملة</div>
+      <div id="diag-audio" class="card-val">
+        0/4
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">الأخطاء المرصودة</div>
+      <div id="diag-errors" class="card-val">
+        0
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button id="btn-refresh">تحديث</button>
+    <button id="btn-clear">مسح السجلات</button>
+    <button id="btn-reset-intro">
+      إعادة تعيين أول زيارة
+    </button>
+    <button id="btn-test-assets">
+      فحص مباشر للأصول
+    </button>
+    <button id="btn-copy">نسخ السجل</button>
+  </div>
+
+  <div id="log-container" class="log-box"></div>
+
+  <script>
+    const KEY = 'marine_game_logs';
+
+    function getLogs() {
+      try {
+        const raw = localStorage.getItem(KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function renderLogs() {
+      const logs = getLogs();
+      const box = document.getElementById(
+        'log-container'
+      );
+      box.innerHTML = '';
+
+      let errCount = 0;
+      let audioSuccess = new Set();
+      let videoStatus = 'لم يبدأ بعد';
+
+      for (let i = logs.length - 1; i >= 0; i--) {
+        const it = logs[i];
+        if (it.level === 'ERR') errCount++;
+        if (it.cat === 'ASSET' &&
+            it.level === 'SUCCESS') {
+          audioSuccess.add(it.msg);
+        }
+        if (it.cat === 'VIDEO') {
+          videoStatus = it.msg;
+        }
+
+        const div = document.createElement(
+          'div'
+        );
+        div.className = 'log-entry';
+
+        const head = document.createElement(
+          'div'
+        );
+        head.className = 'log-head';
+
+        const tag = document.createElement(
+          'span'
+        );
+        tag.className = 'tag tag-' + it.cat;
+        tag.textContent = it.cat;
+
+        const time = document.createElement(
+          'span'
+        );
+        time.className = 'log-time';
+        time.textContent = it.t.slice(11, 23);
+
+        const lvl = document.createElement(
+          'span'
+        );
+        lvl.className = 'status-' +
+          (it.level === 'ERR' ? 'err' :
+           it.level === 'SUCCESS' ? 'ok' : 'info');
+        lvl.textContent = it.level;
+
+        head.appendChild(tag);
+        head.appendChild(lvl);
+        head.appendChild(time);
+
+        const msg = document.createElement(
+          'div'
+        );
+        msg.className = 'log-msg';
+        msg.textContent = it.msg;
+
+        div.appendChild(head);
+        div.appendChild(msg);
+
+        if (it.det) {
+          const det = document.createElement(
+            'div'
+          );
+          det.className = 'log-det';
+          det.textContent = typeof it.det ===
+            'string' ? it.det :
+            JSON.stringify(it.det, null, 1);
+          div.appendChild(det);
+        }
+
+        box.appendChild(div);
+      }
+
+      document.getElementById('diag-errors')
+        .textContent = errCount;
+      document.getElementById('diag-errors')
+        .className = 'card-val ' +
+        (errCount > 0 ? 'status-err' : 'status-ok');
+
+      document.getElementById('diag-audio')
+        .textContent = audioSuccess.size + '/4';
+      document.getElementById('diag-audio')
+        .className = 'card-val ' +
+        (audioSuccess.size >= 4 ? 'status-ok' : 'status-warn');
+
+      document.getElementById('diag-video')
+        .textContent = videoStatus;
+
+      const seen = localStorage
+        .getItem('marine_intro_seen');
+      document.getElementById('diag-seen')
+        .textContent = seen === '1' ?
+        'تمت المشاهدة' : 'أول مرة (جديد)';
+    }
+
+    document.getElementById('btn-refresh')
+      .addEventListener('click', renderLogs);
+
+    document.getElementById('btn-clear')
+      .addEventListener('click', () => {
+        localStorage.removeItem(KEY);
+        renderLogs();
+      });
+
+    document.getElementById('btn-reset-intro')
+      .addEventListener('click', () => {
+        localStorage.removeItem('marine_intro_seen');
+        renderLogs();
+        alert('تمت إعادة تعيين فيديو البداية كأول مرة!');
+      });
+
+    document.getElementById('btn-copy')
+      .addEventListener('click', () => {
+        const text = JSON.stringify(
+          getLogs(), null, 2
+        );
+        navigator.clipboard.writeText(text);
+        alert('تم نسخ السجل بالكامل!');
+      });
+
+    // فحص سلامة الأصول مباشرة من المتصفح
+    document.getElementById('btn-test-assets')
+      .addEventListener('click', async () => {
+        const urls = [
+          'voices/introduction.mp4',
+          'voices/bluewhale.mp3',
+          'voices/divingsound.mp3',
+          'voices/warning.mp3',
+          'voices/Unknown.mp3',
+          'voices/PlayerCircle.png',
+          'voices/SubmarineCircle.png'
+        ];
+
+        for (const u of urls) {
+          try {
+            const res = await fetch(u, {
+              method: 'HEAD'
+            });
+            const status = res.ok ?
+              'SUCCESS' : 'ERR';
+            const logEntry = {
+              t: new Date().toISOString(),
+              cat: u.endsWith('.mp4') ?
+                'VIDEO' : (u.endsWith('.png') ?
+                'ASSET' : 'AUDIO'),
+              level: status,
+              msg: 'Direct Probe: ' + u,
+              det: { status: res.status }
+            };
+            const cur = getLogs();
+            cur.push(logEntry);
+            localStorage.setItem(
+              KEY, JSON.stringify(cur)
+            );
+          } catch (e) {
+            const cur = getLogs();
+            cur.push({
+              t: new Date().toISOString(),
+              cat: 'ERROR',
+              level: 'ERR',
+              msg: 'Probe failed: ' + u,
+              det: String(e)
+            });
+            localStorage.setItem(
+              KEY, JSON.stringify(cur)
+            );
+          }
+        }
+        renderLogs();
+      });
+
+    setInterval(renderLogs, 1500);
+    renderLogs();
+  </script>
+</body>
+</html>
