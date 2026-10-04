@@ -1262,23 +1262,35 @@ canvas#gameCanvas {
 #start-overlay.lobby-screen {
   background: transparent;
   pointer-events: none;
-  justify-content: flex-start;
-  align-items: center;
-  padding: calc(var(--safe-top) + 12px) 12px calc(var(--safe-bottom) + 12px) calc(var(--safe-left) + 18px);
+  display: block;
+  padding: 0;
 }
 
-#lobbyCanvas {
+#lobbyBg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  object-fit: cover;
   display: block;
+}
+
+/* تعتيم تدرّجي يسارًا خلف نافذة الأزرار لقراءة مضمونة على أي صورة */
+#start-overlay.lobby-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(8, 8, 10, 0.55) 0%, rgba(8, 8, 10, 0.25) 32%, rgba(8, 8, 10, 0) 55%);
+  pointer-events: none;
 }
 
 .lobby-menu {
   pointer-events: auto;
-  position: relative;
+  position: absolute;
   z-index: 2;
+  left: calc(var(--safe-left) + 18px);
+  top: 50%;
+  transform: translateY(-50%);
   background: var(--paper);
   border: 4px solid var(--ink);
   border-radius: 6px;
@@ -1622,4 +1634,110 @@ canvas#gameCanvas {
   border: 3px solid var(--ink);
   border-radius: 6px;
   box-shadow: 6px 6px 0 rgba(8, 8, 10, 0.9);
+}
+/* ==========================================================================
+   HUD COMPACT POLISH — بطاقات أصغر وأخف فوق الشاشة
+   ========================================================================== */
+.hud-left-vitals-group { gap: 6px; }
+
+.diver-portrait {
+  width: 42px;
+  height: 42px;
+  border-width: 3px;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.vitals-data-tray {
+  padding: 5px 20px 6px 22px;
+  border-width: 3px;
+  filter: drop-shadow(3px 3px 0 var(--ink));
+}
+
+.vitals-upper-row { gap: 12px; }
+.vital-top { gap: 4px; }
+.vital-ico-heart { width: 12px; height: 12px; }
+.vital-ico-o2 { font-size: 0.68rem; }
+.vital-num { font-size: 0.68rem; }
+.vital-track { width: 62px; height: 4px; }
+.press-track { width: 84px !important; height: 4px !important; }
+.vital-ico-press { width: 11px; height: 11px; }
+.vital-press-num { font-size: 0.6rem; }
+
+.current-mission-card {
+  padding: 5px 12px 5px 9px;
+  max-width: 225px;
+  gap: 8px;
+  filter: drop-shadow(3px 3px 0 var(--ink));
+}
+.mission-warn-icon { width: 17px; height: 17px; font-size: 0.68rem; }
+.mission-heading { font-size: 0.66rem; }
+.mission-subtext { font-size: 0.6rem; }
+.mission-chevron { font-size: 0.7rem; }
+
+.hud-top-right-group { gap: 6px; }
+
+.env-status-strip {
+  padding: 4px 14px;
+  gap: 6px;
+  filter: drop-shadow(3px 3px 0 var(--ink));
+}
+.env-sun-ico,
+.env-wave-ico { width: 15px; height: 15px; }
+.env-time,
+.env-depth { font-size: 0.74rem; }
+
+.menu-actions-strip {
+  padding: 4px 10px 4px 13px;
+  gap: 6px;
+  filter: drop-shadow(3px 3px 0 rgba(8, 8, 10, 0.9));
+}
+.hud-action-tab {
+  width: 30px;
+  height: 26px;
+  border-width: 2px;
+  box-shadow: 2px 2px 0 rgba(8, 8, 10, 0.9);
+}
+.hud-action-tab svg { width: 14px; height: 14px; }
+/* ==========================================================================
+   FORCE LANDSCAPE — منع اللعب العمودي على أي جهاز
+   ========================================================================== */
+#rotate-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #08080A;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+@media (orientation: portrait) {
+  #rotate-overlay { display: flex !important; }
+}
+
+.rotate-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.rotate-icon {
+  width: 64px;
+  height: 64px;
+  animation: rotateNudge 1.6s ease-in-out infinite;
+}
+
+.rotate-text {
+  color: #F1E6CB;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+@keyframes rotateNudge {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
 }

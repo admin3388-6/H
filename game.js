@@ -4284,377 +4284,9 @@
     }
   }
 
-  // =========================================================================
-  // 6.4-b LOBBY SCENE — مشهد القائمة المصوّر خلف أزرار البداية
-  // سماء غائمة + صخور خلف رصيف خشبي يميناً + ماء وغواصة + غواص جالس يتأمل
-  // =========================================================================
-  class LobbyScene {
-    constructor(canvas) {
-      this.canvas = canvas;
-      if (!this.canvas) return;
-      this.ctx = this.canvas.getContext('2d');
-      this.running = false;
-      this.rafId = null;
-      this.time = 0;
-      this.lastT = 0;
-      this.w = 0;
-      this.h = 0;
 
-      // غيوم رمادية بعيدة: مجموعات ثابتة الشكل تنجرف ببطء
-      const cRng = new DeterministicRNG(20261004);
-      this.clouds = [];
-      for (let i = 0; i < 7; i++) {
-        const puffs = [];
-        const n = 4 + Math.floor(cRng.next() * 3);
-        for (let p = 0; p < n; p++) {
-          puffs.push({
-            ox: (p - (n - 1) * 0.5) * 48 + cRng.range(-12, 12),
-            oy: cRng.range(-10, 14),
-            rx: cRng.range(34, 70),
-            ry: cRng.range(12, 22)
-          });
-        }
-        this.clouds.push({
-          baseX: cRng.range(-100, 1500),
-          yF: cRng.range(0.05, 0.24),
-          speed: cRng.range(3, 7),
-          tone: cRng.range(0, 1),
-          scale: cRng.range(0.8, 1.3),
-          puffs
-        });
-      }
 
-      this._onResize = () => this.resize();
-      window.addEventListener('resize', this._onResize, { passive: true });
-      this.resize();
-    }
 
-    resize() {
-      if (!this.canvas) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      this.canvas.width = Math.floor(w * dpr);
-      this.canvas.height = Math.floor(h * dpr);
-      this.dpr = dpr;
-      this.w = w;
-      this.h = h;
-    }
-
-    start() {
-      if (this.running || !this.ctx) return;
-      this.running = true;
-      this.lastT = performance.now();
-      const tick = (t) => {
-        if (!this.running) return;
-        const dt = Math.min(0.05, (t - this.lastT) / 1000);
-        this.lastT = t;
-        this.time += dt;
-        this.draw();
-        this.rafId = requestAnimationFrame(tick);
-      };
-      this.rafId = requestAnimationFrame(tick);
-    }
-
-    stop() {
-      this.running = false;
-      if (this.rafId) {
-        cancelAnimationFrame(this.rafId);
-        this.rafId = null;
-      }
-      window.removeEventListener('resize', this._onResize);
-    }
-
-    draw() {
-      const ctx = this.ctx;
-      const W = this.w, H = this.h;
-      if (!W || !H) return;
-      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-      const t = this.time;
-      const horizon = H * 0.60;
-
-      this.drawSky(ctx, W, H, horizon);
-      this.drawClouds(ctx, W, H, t);
-      this.drawRocks(ctx, W, H, horizon);
-      this.drawWater(ctx, W, H, horizon, t);
-      this.drawSubmarine(ctx, W, H, horizon, t);
-      this.drawDock(ctx, W, H, horizon);
-      this.drawDiver(ctx, W, H, horizon, t);
-      this.drawVignette(ctx, W, H);
-    }
-
-    drawSky(ctx, W, H, horizon) {
-      const g = ctx.createLinearGradient(0, 0, 0, horizon);
-      g.addColorStop(0.0, '#22252c');
-      g.addColorStop(0.55, '#383c44');
-      g.addColorStop(1.0, '#555a62');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, horizon + 2);
-    }
-
-    drawClouds(ctx, W, H, t) {
-      for (const c of this.clouds) {
-        const span = W + 420;
-        const x = (((c.baseX + t * c.speed) % span) + span) % span - 210;
-        const y = c.yF * H;
-        const tone = Math.round(58 + c.tone * 22);
-        ctx.fillStyle = `rgba(${tone}, ${tone + 3}, ${tone + 8}, 0.92)`;
-        for (const p of c.puffs) {
-          ctx.beginPath();
-          ctx.ellipse(x + p.ox * c.scale, y + p.oy * c.scale, p.rx * c.scale, p.ry * c.scale, 0, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        // قاعدة أغمق تمنح الغيوم وزناً بعيداً
-        ctx.fillStyle = 'rgba(30, 32, 38, 0.35)';
-        ctx.beginPath();
-        ctx.ellipse(x, y + 10 * c.scale, 90 * c.scale, 12 * c.scale, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    drawRocks(ctx, W, H, horizon) {
-      const layers = [
-        { col: '#484b52', amp: 0.30, from: 0.50, seed: 1.7 },
-        { col: '#35383f', amp: 0.24, from: 0.56, seed: 4.1 },
-        { col: '#232529', amp: 0.19, from: 0.62, seed: 7.9 }
-      ];
-      for (let li = 0; li < layers.length; li++) {
-        const L = layers[li];
-        const x0 = W * L.from;
-        ctx.beginPath();
-        ctx.moveTo(W, horizon + 60);
-        for (let x = W; x >= x0; x -= 16) {
-          const n = Math.sin(x * 0.013 + L.seed) * 0.5 +
-                    Math.sin(x * 0.031 + L.seed * 2.1) * 0.3 +
-                    Math.sin(x * 0.007 + L.seed * 0.7) * 0.2;
-          const y = horizon - Math.abs(n) * H * L.amp - 6;
-          ctx.lineTo(x, y);
-        }
-        ctx.lineTo(x0, horizon + 60);
-        ctx.closePath();
-        ctx.fillStyle = L.col;
-        ctx.fill();
-        if (li === 2) {
-          ctx.strokeStyle = '#111111';
-          ctx.lineWidth = 3;
-          ctx.stroke();
-        }
-      }
-    }
-
-    drawWater(ctx, W, H, horizon, t) {
-      const g = ctx.createLinearGradient(0, horizon, 0, H);
-      g.addColorStop(0.0, '#26333a');
-      g.addColorStop(0.35, '#182229');
-      g.addColorStop(1.0, '#0d1419');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, horizon, W, H - horizon);
-
-      // خطوط أمواج كريمية خافتة
-      ctx.strokeStyle = 'rgba(241, 230, 203, 0.13)';
-      ctx.lineWidth = 2;
-      for (let k = 0; k < 4; k++) {
-        const yBase = horizon + 16 + k * 20;
-        ctx.beginPath();
-        for (let x = 0; x <= W * 0.56; x += 14) {
-          const y = yBase + Math.sin(x * 0.05 + t * (1.1 + k * 0.2) + k * 2.4) * 2.2;
-          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      }
-
-      // خط الأفق الحبري
-      ctx.strokeStyle = '#111111';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(0, horizon);
-      ctx.lineTo(W * 0.545, horizon);
-      ctx.stroke();
-    }
-
-    drawSubmarine(ctx, W, H, horizon, t) {
-      const bob = Math.sin(t * 0.9) * 2;
-      const cx = W * 0.42;
-      const cy = horizon + 10 + bob;
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(Math.sin(t * 0.7) * 0.015);
-
-      // انعكاس خافت على سطح الماء
-      ctx.fillStyle = 'rgba(241, 196, 15, 0.10)';
-      ctx.beginPath();
-      ctx.ellipse(0, 16, 66, 8, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // الهيكل الأصفر بهوية كوميكية وحدود حبرية
-      const hullG = ctx.createLinearGradient(0, -22, 0, 20);
-      hullG.addColorStop(0, '#f6d34a');
-      hullG.addColorStop(0.6, '#e9b41c');
-      hullG.addColorStop(1, '#b0780c');
-      ctx.fillStyle = hullG;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 64, 19, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#111111';
-      ctx.lineWidth = 3.5;
-      ctx.stroke();
-
-      // البرج والبيريسكوب
-      ctx.fillStyle = '#d99f14';
-      ctx.beginPath();
-      ctx.roundRect(-6, -34, 26, 18, 4);
-      ctx.fill();
-      ctx.strokeStyle = '#111111';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(14, -34);
-      ctx.lineTo(14, -46);
-      ctx.lineTo(22, -46);
-      ctx.stroke();
-
-      // نوافذ كريمية
-      ctx.fillStyle = '#F1E6CB';
-      for (const px of [-30, -8, 32]) {
-        ctx.beginPath();
-        ctx.arc(px, -2, 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#111111';
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
-      }
-
-      // الذيل
-      ctx.fillStyle = '#c98f0e';
-      ctx.beginPath();
-      ctx.moveTo(-62, 0);
-      ctx.lineTo(-78, -12);
-      ctx.lineTo(-74, 0);
-      ctx.lineTo(-78, 12);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#111111';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-
-      ctx.restore();
-
-      // موجة تعانق مقدمة الغواصة (إحساس الطفو)
-      ctx.strokeStyle = 'rgba(241, 230, 203, 0.28)';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      for (let x = cx - 78; x <= cx + 66; x += 10) {
-        const y = horizon + 6 + Math.sin(x * 0.08 + t * 1.6) * 2;
-        if (x === cx - 78) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-    }
-
-    drawDock(ctx, W, H, horizon) {
-      const x0 = W * 0.545;
-      const deckY = horizon - 8;
-
-      // أعمدة تغوص في الماء
-      ctx.fillStyle = '#3a2a1c';
-      for (const px of [x0 + 14, W * 0.72, W * 0.9]) {
-        ctx.fillRect(px - 5, deckY + 14, 10, H * 0.32);
-      }
-
-      // عارضة تحت السطح
-      ctx.fillStyle = '#2e2117';
-      ctx.fillRect(x0, deckY + 12, W - x0, 8);
-
-      // سطح الألواح
-      const deckG = ctx.createLinearGradient(0, deckY, 0, deckY + 14);
-      deckG.addColorStop(0, '#8c6242');
-      deckG.addColorStop(1, '#5f4028');
-      ctx.fillStyle = deckG;
-      ctx.fillRect(x0, deckY, W - x0, 14);
-
-      // فواصل الألواح
-      ctx.strokeStyle = 'rgba(17, 17, 17, 0.55)';
-      ctx.lineWidth = 2;
-      for (let x = x0 + 30; x < W; x += 44) {
-        ctx.beginPath();
-        ctx.moveTo(x, deckY + 1);
-        ctx.lineTo(x, deckY + 13);
-        ctx.stroke();
-      }
-
-      // حدود حبرية صلبة
-      ctx.strokeStyle = '#111111';
-      ctx.lineWidth = 3.5;
-      ctx.strokeRect(x0, deckY, W - x0, 14);
-    }
-
-    drawDiver(ctx, W, H, horizon, t) {
-      const x0 = W * 0.545;
-      const deckY = horizon - 8;
-      const bob = Math.sin(t * 1.1) * 1.2; // تنفّس هادئ
-      const hx = x0 + 12;
-      const hy = deckY;
-
-      ctx.save();
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      // الساقان المتدليتان على حافة الرصيف
-      ctx.strokeStyle = '#1c1c20';
-      ctx.lineWidth = 6;
-      ctx.beginPath();
-      ctx.moveTo(hx, hy - 2);
-      ctx.lineTo(hx - 9, hy + 12);
-      ctx.lineTo(hx - 7, hy + 27);
-      ctx.stroke();
-      // الحذاء
-      ctx.fillStyle = '#111111';
-      ctx.beginPath();
-      ctx.roundRect(hx - 12, hy + 25, 11, 6, 2);
-      ctx.fill();
-
-      // الجذع المسترخي
-      ctx.strokeStyle = '#23262b';
-      ctx.lineWidth = 9;
-      ctx.beginPath();
-      ctx.moveTo(hx, hy - 2);
-      ctx.lineTo(hx + 2, hy - 22 + bob);
-      ctx.stroke();
-
-      // الرأس
-      ctx.fillStyle = '#d9a47e';
-      ctx.beginPath();
-      ctx.arc(hx - 1, hy - 30 + bob, 6.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#111111';
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-
-      // القبعة الحمراء الداكنة
-      ctx.fillStyle = '#7F1818';
-      ctx.beginPath();
-      ctx.arc(hx - 1, hy - 31 + bob, 6.5, Math.PI * 1.05, Math.PI * 1.95);
-      ctx.fill();
-      ctx.fillRect(hx - 8, hy - 32.5 + bob, 14, 3);
-
-      // الذراعان المتكأتان على الركبتين
-      ctx.strokeStyle = '#23262b';
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(hx + 2, hy - 19 + bob);
-      ctx.lineTo(hx - 6, hy - 4);
-      ctx.stroke();
-
-      ctx.restore();
-    }
-
-    drawVignette(ctx, W, H) {
-      const g = ctx.createRadialGradient(W * 0.5, H * 0.45, Math.min(W, H) * 0.35, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
-      g.addColorStop(0, 'rgba(8, 8, 10, 0)');
-      g.addColorStop(1, 'rgba(8, 8, 10, 0.55)');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, H);
-    }
-  }
 
   // =========================================================================
   // 6.5 PRELOADER & INTRO FLOW MANAGER
@@ -4820,9 +4452,6 @@
         });
       }
 
-      // تشغيل مشهد اللوبي المصوّر خلف القائمة
-      this.lobbyScene = new LobbyScene(document.getElementById('lobbyCanvas'));
-      if (this.lobbyScene) this.lobbyScene.start();
     }
 
 
@@ -4849,13 +4478,27 @@
           screen.orientation.lock('landscape').catch(() => {});
         }
       } catch (_) {}
+      // إعادة فرض القفل الأفقي فور أي تغيير في اتجاه الجهاز
+      try {
+        if (!this._orientationLocked) {
+          this._orientationLocked = true;
+          window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+              try {
+                if (screen.orientation && screen.orientation.lock) {
+                  screen.orientation.lock('landscape').catch(() => {});
+                }
+                if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                  document.documentElement.requestFullscreen().catch(() => {});
+                }
+              } catch (_) {}
+            }, 300);
+          });
+        }
+      } catch (_) {}
     }
 
     goToLoader() {
-      if (this.lobbyScene) {
-        this.lobbyScene.stop();
-        this.lobbyScene = null;
-      }
       if (this.startEl) this.startEl.classList.add('hidden');
       if (this.loadEl) this.loadEl.classList.remove('hidden');
       this.progress = 0;
