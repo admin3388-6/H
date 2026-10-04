@@ -15,10 +15,9 @@
     <div id="start-overlay" class="flow-screen lobby-screen">
       <img id="lobbyBg" src="voices/lobby.webp" alt="">
       <div class="lobby-menu">
-        <h1 class="lobby-title">رحلة إلى أعماق المحيط</h1>
-        <p class="lobby-subtitle">مغامرة غواصة سينمائية</p>
         <button id="btn-start" class="lobby-start-btn" type="button">لعبة جديدة</button>
         <button id="btn-continue" class="lobby-btn-secondary" type="button">استمرار</button>
+        <button id="btn-lobby-online" class="lobby-btn-secondary" type="button">اونلاين</button>
         <button id="btn-lobby-settings" class="lobby-btn-secondary" type="button">الإعدادات</button>
         <div class="lobby-mini-row">
           <button id="btn-lobby-web" class="lobby-mini-btn" type="button" aria-label="الموقع والتواصل">
@@ -41,6 +40,13 @@
             <input id="lobby-volume" type="range" min="0" max="100" value="85">
           </label>
           <button class="lobby-btn-secondary lobby-modal-close" data-close="lobby-modal-settings" type="button">إغلاق</button>
+        </div>
+      </div>
+      <div id="lobby-modal-online" class="lobby-modal hidden">
+        <div class="lobby-modal-card">
+          <h2>اللعب اونلاين</h2>
+          <p>الوضع الاونلاين قيد التطوير — ترقّب الإصدارات القادمة.</p>
+          <button class="lobby-btn-secondary lobby-modal-close" data-close="lobby-modal-online" type="button">إغلاق</button>
         </div>
       </div>
       <div id="lobby-modal-web" class="lobby-modal hidden">

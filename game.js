@@ -4341,14 +4341,6 @@
       }
     }
 
-    hasCompletedIntro() {
-      try {
-        return localStorage.getItem('marine_intro_seen') === '1';
-      } catch (_) {
-        return false;
-      }
-    }
-
     markIntroCompleted() {
       try {
         localStorage.setItem('marine_intro_seen', '1');
@@ -4369,17 +4361,6 @@
       this.setBar(this.progress);
     }
 
-    // شاشة التحضير: شريط تحميل بدل "إضغط للبدء" إلى أن يجهز الفيديو
-    showPrepScreen(on) {
-      if (!this.startEl || !this.loadEl) return;
-      if (on) {
-        this.startEl.classList.add('hidden');
-        this.loadEl.classList.remove('hidden');
-      } else {
-        this.loadEl.classList.add('hidden');
-        this.startEl.classList.remove('hidden');
-      }
-    }
 
 
         initEvents() {
@@ -4416,6 +4397,7 @@
       // نوافذ اللوبي المصغرة: إعدادات / ويب / أخبار / متجر
       const modalPairs = [
         ['btn-lobby-settings', 'lobby-modal-settings'],
+        ['btn-lobby-online', 'lobby-modal-online'],
         ['btn-lobby-web', 'lobby-modal-web'],
         ['btn-lobby-news', 'lobby-modal-news'],
         ['btn-lobby-store', 'lobby-modal-store']

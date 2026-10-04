@@ -1741,3 +1741,143 @@ canvas#gameCanvas {
   0%, 100% { transform: rotate(0deg); }
   50% { transform: rotate(-90deg); }
 }
+/* ==========================================================================
+   LOBBY DARK UI v4 — بدون أحمر نهائياً + لمسات تحسين نهائية
+   ========================================================================== */
+
+/* فاصل رفيع تحت العنوان يمنح القائمة بنية أوضح وأهدأ */
+.lobby-subtitle {
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 8px;
+}
+
+/* زر "لعبة جديدة" بدون أي أحمر: يتميز بإضاءة أعلى وحد أوضح فقط */
+.lobby-start-btn {
+  background: rgba(46, 46, 52, 0.95);
+  border-color: rgba(255, 255, 255, 0.34);
+  box-shadow: none;
+}
+
+.lobby-start-btn:active {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* انتقالات ناعمة لكل أزرار القائمة */
+.lobby-start-btn,
+.lobby-btn-secondary,
+.lobby-mini-btn {
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+/* استجابة لمس رقيقة: انكماش خفيف جداً عند الضغط */
+.lobby-start-btn:active,
+.lobby-btn-secondary:active,
+.lobby-mini-btn:active {
+  transform: scale(0.98);
+}
+
+/* تباعد أنسب داخل النافذة */
+.lobby-menu {
+  padding: 20px 22px 16px;
+  gap: 11px;
+}
+
+/* تحسين تباعد النوافذ المصغرة */
+.lobby-modal-card {
+  padding: 18px 22px;
+}
+/* ==========================================================================
+   LOBBY FINAL v6 — داكن، مسطّح، شفاف: يتجاوز كل خاصية قديمة صراحةً
+   ========================================================================== */
+
+/* النافذة: أسود شفاف — لا كريمي، لا حدود سميكة، لا ظل صلب */
+.lobby-menu {
+  background: rgba(10, 10, 12, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  box-shadow: none;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  padding: 18px 20px 14px;
+  gap: 9px;
+}
+
+/* العنوان فاتح هادئ على الداكن */
+.lobby-title { color: #F1EDE3; }
+.lobby-subtitle {
+  color: #8f9499;
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 2px;
+}
+
+/* الأزرار: رماديات شفافة مسطّحة */
+.lobby-start-btn,
+.lobby-btn-secondary {
+  background: rgba(255, 255, 255, 0.07);
+  color: #EDEDE8;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  box-shadow: none;
+  font-weight: 600;
+}
+.lobby-start-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.lobby-start-btn:active,
+.lobby-btn-secondary:active {
+  transform: none;
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* الأزرار الصغيرة: نفس الشيء */
+.lobby-mini-btn {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  box-shadow: none;
+}
+.lobby-mini-btn:active {
+  transform: none;
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* سطر الحالة رمادي هادئ */
+.lobby-status { color: #9aa0a6; }
+
+/* النوافذ المصغرة: نفس الداكن المسطّح */
+.lobby-modal { background: rgba(5, 5, 7, 0.6); }
+.lobby-modal-card {
+  background: rgba(12, 12, 14, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  box-shadow: none;
+}
+.lobby-modal-card h2 {
+  color: #F1EDE3;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+}
+.lobby-modal-card p { color: #b9bdc2; }
+.lobby-setting-row { color: #EDEDE8; }
+/* ==========================================================================
+   LOBBY v7 — بلا بطاقة حاوية: الأزرار عائمة مباشرة فوق الصورة
+   ========================================================================== */
+
+/* إلغاء الخلفية والحدود والضبابية عن الحاوية نفسها */
+.lobby-menu {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* كل زر يحمل خلفيته الداكنة الخفيفة بنفسه ليبقى مقروءاً فوق الصورة */
+.lobby-btn-secondary { background: rgba(12, 12, 14, 0.6); }
+.lobby-start-btn { background: rgba(12, 12, 14, 0.82); }
+.lobby-mini-btn { background: rgba(12, 12, 14, 0.6); }
