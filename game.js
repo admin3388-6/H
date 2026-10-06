@@ -1596,9 +1596,9 @@
   class Submarine {
     constructor(terrain) {
       this.terrain = terrain;
-      // نقطة بداية اللعبة: الغواصة راسية خلف الغواص بجوار الرصيف (مشهد الـLobby)
-      this.x = 9370;
-      this.y = 455;
+      // نقطة بداية اللعبة: مياه مفتوحة آمنة غرب الصخور مع مساحة واسعة للدوران 360°
+      this.x = 8500;
+      this.y = 500;
       this.vx = 0;
       this.vy = 0;
       this.angle = Math.PI;
@@ -4034,6 +4034,8 @@
       this.ambientTop = '#ffffff';
       this.ambientMid = '#aaccff';
       this.starAlpha = 0;
+      this.weather = 'cloud'; // مشمس sun / مغيم cloud / عاصفة storm / ثلج snow
+      this.weatherTimer = 20;
       this.phaseName = 'ظهيرة';
       this.updateColors();
     }
@@ -4054,6 +4056,15 @@
 
     update(dt) {
       this.time = (this.time + dt) % this.cycleDuration;
+
+      // تبديل الطقس كل ~2.5 دقيقة باحتمالات (الجو المغيم هو الأرجح)
+      this.weatherTimer += dt;
+      if (this.weatherTimer >= 150) {
+        this.weatherTimer = 0;
+        const r = Math.random();
+        this.weather = r < 0.28 ? 'sun' : (r < 0.62 ? 'cloud' : (r < 0.82 ? 'storm' : 'snow'));
+      }
+
       this.saveTimer += dt;
       if (this.saveTimer >= 4.0) {
         this.saveTimer = 0;
@@ -5048,6 +5059,76 @@
 
 
   // =========================================================================
+  // 6.7b RAIN AMBIENT AUDIO (صوت مطر مولّد — خفيف، يخفت تدريجيًا مع العمق)
+  // =========================================================================
+  class RainAmbientAudio {
+    constructor() {
+      this.ctx = null;
+      this.mgr = null;
+      this.ready = false;
+      this.failed = false;
+      this.playing = false;
+      this.srcNode = null;
+      this.gainNode = null;
+      this.filterNode = null;
+    }
+
+    init(sharedAudioMgr) {
+      if (this.ready || this.failed) return;
+      this.mgr = sharedAudioMgr || null;
+      this.ctx = (this.mgr && this.mgr.ctx) || null;
+      if (!this.ctx) { this.failed = true; return; }
+      try {
+        // عازف ضوضاء مستمرة (مطر) — بلا ملفات ولا ضغط على الذاكرة
+        const len = 2 * this.ctx.sampleRate;
+        const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+        this.buffer = buf;
+        this.ready = true;
+      } catch (_) { this.failed = true; }
+    }
+
+    _start() {
+      try {
+        this.srcNode = this.ctx.createBufferSource();
+        this.srcNode.buffer = this.buffer;
+        this.srcNode.loop = true;
+        this.filterNode = this.ctx.createBiquadFilter();
+        this.filterNode.type = 'lowpass';
+        this.filterNode.frequency.value = 1400;
+        this.gainNode = this.ctx.createGain();
+        this.gainNode.gain.value = 0.0001;
+        this.srcNode.connect(this.filterNode);
+        this.filterNode.connect(this.gainNode);
+        this.gainNode.connect((this.mgr && this.mgr.ambientBus) || this.ctx.destination);
+        this.srcNode.start();
+        this.playing = true;
+      } catch (_) { this.playing = false; }
+    }
+
+    _stop() {
+      try { if (this.srcNode) this.srcNode.stop(); } catch (_) {}
+      try { if (this.srcNode) this.srcNode.disconnect(); } catch (_) {}
+      try { if (this.filterNode) this.filterNode.disconnect(); } catch (_) {}
+      try { if (this.gainNode) this.gainNode.disconnect(); } catch (_) {}
+      this.srcNode = null; this.filterNode = null; this.gainNode = null;
+      this.playing = false;
+    }
+
+    // active: هل الجو عاصف؟ depthM: عمق الكيان — الصوت يخفت 0→1 كل 40م ويتوقف تمامًا
+    update(active, depthM) {
+      if (!this.ready) return;
+      if (active && !this.playing) this._start();
+      if (!active && this.playing) this._stop();
+      if (!this.playing || !this.gainNode) return;
+      const aboveFactor = depthM <= 0.5 ? 1 : Math.max(0, 1 - depthM / 40);
+      const vol = 0.13 * aboveFactor; // مستوى خفيف دائمًا
+      this.gainNode.gain.setTargetAtTime(Math.max(0.0001, vol), this.ctx.currentTime, 0.4);
+    }
+  }
+
+  // =========================================================================
   // 6.8 OBJECT POOL (إعادة استخدام الجسيمات بدل إنشائها وحذفها كل إطار)
   // =========================================================================
   class ObjectPool {
@@ -5319,6 +5400,7 @@
 
       // --- طبقة 1: Base Albedo (الألوان الأصلية) ---
       this.drawSky(ctx);
+      this.drawClouds(ctx);
       this.drawWaterColumn(ctx);
       this.drawRocks(ctx);
       this.drawMainTerrain(ctx);
@@ -5348,6 +5430,7 @@
       }
       this.drawMarineSnow(ctx);
       this.drawWaterSurface(ctx);
+      this.drawStormRain(ctx);
 
       ctx.restore();
     }
@@ -5386,6 +5469,16 @@
       ctx.fillStyle = bgGrad;
       ctx.fillRect(-100, -300, WORLD.WIDTH + 200, WORLD.HEIGHT + 500);
 
+      // تعتيم السماء حسب الطقس (عاصفة أغمق، مغيم أخف)
+      const wthr = this.dayNight ? this.dayNight.weather : 'sun';
+      if (wthr === 'storm') {
+        ctx.fillStyle = 'rgba(32, 38, 50, 0.42)';
+        ctx.fillRect(-100, -300, WORLD.WIDTH + 200, WORLD.WATER_Y + 300);
+      } else if (wthr === 'cloud' || wthr === 'snow') {
+        ctx.fillStyle = 'rgba(70, 80, 95, 0.18)';
+        ctx.fillRect(-100, -300, WORLD.WIDTH + 200, WORLD.WATER_Y + 300);
+      }
+
       // رسم النجوم المتلألئة ليلاً
       if (dn && dn.starAlpha > 0.02) {
         ctx.save();
@@ -5402,7 +5495,58 @@
     }
 
     drawClouds(ctx) {
-      // تم استبداله: حذف الغيوم بناءً على الطلب
+      const wthr = this.dayNight ? this.dayNight.weather : 'sun';
+      if (wthr === 'sun') return;
+      const alpha = wthr === 'storm' ? 0.95 : (wthr === 'snow' ? 0.85 : 0.7);
+      const fill = wthr === 'storm' ? '88, 95, 110' : '245, 248, 252';
+      ctx.save();
+      for (const cl of this.optics.clouds) {
+        ctx.fillStyle = `rgba(${fill}, ${alpha})`;
+        const s = cl.scale;
+        ctx.beginPath();
+        ctx.ellipse(cl.x, cl.y, 55 * s, 15 * s, 0, 0, Math.PI * 2);
+        ctx.ellipse(cl.x - 30 * s, cl.y + 6 * s, 32 * s, 11 * s, 0, 0, Math.PI * 2);
+        ctx.ellipse(cl.x + 32 * s, cl.y + 6 * s, 34 * s, 10 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // مطر العاصفة أو تساقط الثلوج — فوق سطح الماء فقط، ويختفي تلقائيًا عند الغوص
+    drawStormRain(ctx) {
+      const wthr = this.dayNight ? this.dayNight.weather : 'sun';
+      if (wthr !== 'storm' && wthr !== 'snow') return;
+      const cam = this.camera;
+      const dpr = window.devicePixelRatio > 2.0 ? 2.0 : window.devicePixelRatio || 1;
+      const halfW = (this.canvas.width / dpr) / (2 * cam.zoom);
+      const t = this.optics.time;
+      ctx.save();
+      if (wthr === 'storm') {
+        ctx.strokeStyle = 'rgba(175, 200, 228, 0.38)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i < 70; i++) {
+          const rx = cam.x - halfW + ((i * 137.5) % (halfW * 2));
+          const speed = 520 + (i % 5) * 60;
+          const ry = ((t * speed + i * 197) % 460) + WORLD.WATER_Y - 80;
+          if (ry > WORLD.WATER_Y + 20) continue;
+          ctx.moveTo(rx, ry);
+          ctx.lineTo(rx - 4, ry + 16);
+        }
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        for (let i = 0; i < 50; i++) {
+          const rx = cam.x - halfW + ((i * 173) % (halfW * 2));
+          const speed = 40 + (i % 4) * 14;
+          const ry = ((t * speed + i * 211) % 400) + WORLD.WATER_Y - 70;
+          if (ry > WORLD.WATER_Y + 15) continue;
+          ctx.beginPath();
+          ctx.arc(rx, ry, 1.3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
     }
 
     drawFarBackground(ctx) {
@@ -5784,6 +5928,7 @@
       this.ringAudio = new SubmarineRingAudio();
       this.submarine.ringAudio = this.ringAudio;
       this.diveAudio = new DivingAmbientAudio();
+      this.rainAudio = new RainAmbientAudio();
 
       this.input = new InputEngine(this.canvas, this.camera);
       this.renderer = new Renderer(this.canvas, this.ctx, this.camera, this.terrain, this.ecology, this.optics);
@@ -5838,6 +5983,7 @@
       this.fixedStep = 1 / 60;
       this.accumulator = 0;
 
+      this._joyLastActive = performance.now();
       this.initWindowEvents();
       this.initUI();
       this.handleResize();
@@ -5861,6 +6007,9 @@
           setTimeout(() => {
             if (this.diveAudio) this.diveAudio.init(this.audioManager);
           }, 350);
+          setTimeout(() => {
+            if (this.rainAudio) this.rainAudio.init(this.audioManager);
+          }, 600);
           setTimeout(() => {
             if (this.whaleAudio) this.whaleAudio.initAudio(this.audioManager);
           }, 1500);
@@ -5990,8 +6139,8 @@
         const handleRevive = (e) => {
           if (e) e.stopPropagation();
           // إعادة إحياء داخل الغواصة عند عمق 20م (520px) بجانب الصخور في المياه المفتوحة (8600px)
-          const respawnX = 8600;
-          const respawnY = WORLD.WATER_Y + 120; // عمق 20 متراً في مياه صافية غرب الحاجز الصخري
+          const respawnX = 8500;
+          const respawnY = WORLD.WATER_Y + 100; // نفس نقطة البداية الآمنة غرب الصخور
 
           if (this.submarine) {
             this.submarine.health = 100;
@@ -6169,7 +6318,7 @@
           this.btnAction.classList.add('compact-exit');
           if (wrap && this._actionState !== 'exit') {
             this._actionState = 'exit';
-            wrap.innerHTML = '<svg class="cyber-svg-action" viewBox="0 0 24 24" fill="none" stroke="#ff4757" stroke-width="2.4" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>';
+            wrap.innerHTML = '<img class="action-ico-img" src="voices/interaction.webp" alt="">';
           }
         } else {
           const canBoard = distToSub < 95;
@@ -6177,12 +6326,23 @@
           this.btnAction.classList.toggle('hidden', !canBoard);
           if (canBoard && wrap && this._actionState !== 'enter') {
             this._actionState = 'enter';
-            wrap.innerHTML = '<svg class="cyber-svg-action" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="2.4" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>';
+            wrap.innerHTML = '<img class="action-ico-img" src="voices/interaction.webp" alt="">';
           }
         }
       }
 
       this.input.update(dt);
+
+      // خمول عصا التحكم: تتلاشى تدريجيًا بعد 5 ثوانٍ دون لمس وتعود عند أول لمسة
+      const jZone = document.getElementById('joystick-zone');
+      if (jZone) {
+        const jState = this.input.joystick;
+        if (jState && (jState.active || jState.force > 0.05)) {
+          this._joyLastActive = performance.now();
+        }
+        jZone.classList.toggle('is-idle', performance.now() - this._joyLastActive > 5000);
+      }
+
       this.camera.update(dt);
       this.optics.update(dt);
       if (this.dayNight) this.dayNight.update(dt);
@@ -6201,6 +6361,10 @@
 
       const submerged = depthM > 2;
       this.diveAudio.update(dt, depthM, submerged);
+      // صوت المطر الخفيف: ينخفض تدريجيًا مع الغوص ويتوقف في الأعماق
+      if (this.rainAudio) {
+        this.rainAudio.update(this.dayNight && this.dayNight.weather === 'storm', depthM);
+      }
     }
 
     updateHUD() {
@@ -6249,6 +6413,33 @@
 
       // 1. تحديث شريط البيئة والوقت
       if (this.timeGauge && this.dayNight) this.timeGauge.textContent = this.dayNight.getTimeString();
+
+      // أيقونة الطقس حسب الجو والليل
+      if (this.dayNight) {
+        const w = this.dayNight.weather;
+        const isNight = this.dayNight.starAlpha > 0.4;
+        const wIcon = document.getElementById('weather-icon');
+        if (wIcon) {
+          let src = 'voices/day.webp';
+          if (isNight) src = 'voices/night.webp';
+          else if (w === 'storm') src = 'voices/storm.webp';
+          else if (w === 'snow') src = 'voices/snow.webp';
+          else if (w === 'cloud') src = 'voices/cloudy.webp';
+          if (this._lastWeatherIcon !== src) {
+            this._lastWeatherIcon = src;
+            wIcon.src = src;
+            wIcon.style.opacity = '1';
+          }
+        }
+        // الحرارة المحيطة: حسب الجو والليل، وتنخفض مع العمق حتى 2°
+        const tempEl = document.getElementById('temp-gauge');
+        if (tempEl) {
+          let temp = w === 'sun' ? 24 : (w === 'cloud' ? 17 : (w === 'storm' ? 13 : -2));
+          if (isNight) temp -= 6;
+          if (dM > 0) temp = Math.round(Math.max(2, temp - dM * 0.35));
+          tempEl.textContent = `${temp}°`;
+        }
+      }
       if (this.depthGauge) this.depthGauge.textContent = `- ${dM} m`;
 
       // 2. تبديل صورة الأفاتار الدائري من مجلد voices/
@@ -6275,6 +6466,20 @@
         ? Math.round(Math.max(0, this.submarine ? this.submarine.health : 100))
         : Math.round(Math.max(0, this.fisherman ? this.fisherman.health : 100));
       const curOxy = Math.round(Math.max(0, this.fisherman ? this.fisherman.oxygen : 100));
+
+      // تبديل أيقونة القلب: غواصة داخل الغواصة / قلب خارجها
+      const hpIconSub = document.getElementById('hp-icon-sub');
+      const hpIconDiver = document.getElementById('hp-icon-diver');
+      if (hpIconSub && hpIconDiver) {
+        hpIconSub.style.display = inSub ? 'block' : 'none';
+        hpIconDiver.style.display = inSub ? 'none' : 'block';
+      }
+      // شارة zzz فوق أيقونة الأكسجين داخل الغواصة (لا استهلاك)
+      const oxyWrap = document.getElementById('oxy-icon-wrap');
+      if (oxyWrap) oxyWrap.classList.toggle('is-idle', inSub);
+      // الوزن: يقيس وزن الحقيبة فقط — فارغة افتراضيًا
+      const weightTxt = document.getElementById('weight-val-text');
+      if (weightTxt) weightTxt.textContent = '0';
 
       if (hpBar) hpBar.style.width = `${curHp}%`;
       if (oxyBar) oxyBar.style.width = `${curOxy}%`;

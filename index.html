@@ -264,27 +264,23 @@ elements.end.classList.remove('visible');elements.narration.classList.remove('na
       <!-- بوصلة التحكم البحرية الملاحية المتطابقة -->
       <div id="joystick-zone" class="joystick-zone">
         <div id="joystick-base" class="compass-base">
-          <div class="compass-pointer ptr-n"></div>
-          <div class="compass-pointer ptr-e"></div>
-          <div class="compass-pointer ptr-s"></div>
-          <div class="compass-pointer ptr-w"></div>
-          <span class="compass-mark mark-n">N</span>
-          <span class="compass-mark mark-e">E</span>
-          <span class="compass-mark mark-s">S</span>
-          <span class="compass-mark mark-w">K</span>
           <div class="compass-reticle"></div>
           <div id="joystick-stick" class="compass-knob"></div>
         </div>
       </div>
       <!-- أزرار التحكم السيبرانية المتناسقة -->
       <div class="right-controls-cluster">
+        <!-- زر التفاعل لركوب ونزول الغواصة -->
+        <button id="btn-action" class="cyber-round-btn btn-action-themed hidden" type="button" aria-label="تفاعل">
+          <div class="cyber-btn-halo halo-action"></div>
+          <span id="action-icon-wrap" class="cyber-icon-center">
+            <img class="action-ico-img" src="voices/interaction.webp" alt="" onerror="this.style.opacity='0'">
+          </span>
+        </button>
         <button id="btn-light-toggle" class="cyber-round-btn btn-light-themed" type="button" aria-label="كشاف">
           <div class="cyber-btn-halo halo-cyan"></div>
           <span id="light-icon-wrap" class="cyber-icon-center">
-            <svg class="cyber-svg" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 18h6M10 22h4"/>
-              <path d="M12 2a7 7 0 0 0-7 7c0 2.5 1.3 4.7 3.3 6 .7.5 1.7 1.5 1.7 3h4c0-1.5 1-2.5 1.7-3 2-1.3 3.3-3.5 3.3-6a7 7 0 0 0-7-7z"/>
-            </svg>
+            <img class="action-ico-img" src="voices/searchlight.webp" alt="" onerror="this.style.opacity='0'">
           </span>
         </button>
 
@@ -294,15 +290,6 @@ elements.end.classList.remove('visible');elements.narration.classList.remove('na
           <svg class="cyber-svg-arrow" viewBox="0 0 24 24"><path fill="#B92828" d="M12 4l-7 7h4v9h6v-9h4z"/></svg> 
         </button>
 
-        <!-- زر التفاعل المحسن لركوب ونزول الغواصة -->
-        <button id="btn-action" class="cyber-round-btn btn-action-themed hidden" type="button" aria-label="تفاعل">
-          <div class="cyber-btn-halo halo-action"></div>
-          <span id="action-icon-wrap" class="cyber-icon-center">
-            <svg class="cyber-svg-action" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/>
-            </svg>
-          </span>
-        </button>
       </div>
 
       <!-- تم استبداله: لوحة مؤشرات الضغط القديمة تم دمجها باللوحة التكتيكية المتطورة -->
@@ -346,19 +333,31 @@ elements.end.classList.remove('visible');elements.narration.classList.remove('na
           <div class="vitals-data-tray">
             <div class="vitals-upper-row">
               <div class="vital-col">
-                <div class="vital-top"><svg class="vital-ico-heart" viewBox="0 0 24 24"><path fill="#B92828" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/> </svg><span id="hp-val-text" class="vital-num">100/100</span></div>
+                <div class="vital-top">
+                  <img id="hp-icon-diver" class="vital-ico-img" src="voices/heart.webp" alt="" onerror="this.style.opacity='0'">
+                  <img id="hp-icon-sub" class="vital-ico-img" src="voices/submarine.webp" alt="" style="display:none" onerror="this.style.opacity='0'">
+                  <span id="hp-val-text" class="vital-num">100/100</span>
+                </div>
                 <div class="vital-track"><div id="bar-player-hp" class="vital-fill fill-hp" style="width:100%;"></div></div>
               </div>
               <div class="vital-col">
-                <div class="vital-top"><span class="vital-ico-o2">O₂</span><span id="oxy-val-text" class="vital-num">85/100</span></div>
+                <div class="vital-top">
+                  <span id="oxy-icon-wrap" class="oxy-wrap"><img class="vital-ico-img" src="voices/O2.webp" alt="" onerror="this.style.opacity='0'"></span>
+                  <span id="oxy-val-text" class="vital-num">100/100</span>
+                </div>
                 <div class="vital-track"><div id="bar-oxygen" class="vital-fill fill-oxy" style="width:85%;"></div></div>
               </div>
             </div>
             <!-- شريط قياس الضغط المدمج الجديد تحت الصحة والأكسجين -->
             <div class="vital-pressure-row">
-             <svg class="vital-ico-press" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#111111" stroke-width="2"/><path stroke="#111111" stroke-width="2" stroke-linecap="round" d="M12 12l3-4"/></svg> 
+             <svg class="vital-ico-press" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round"><path d="M4.5 16.5a7.5 7.5 0 1 1 15 0"/><path d="M12 16.5l4-5"/><circle cx="12" cy="16.5" r="1.4" fill="#ffffff" stroke="none"/><path d="M4.5 16.5h2M17.5 16.5h2M12 9V7"/></svg> 
               <div class="vital-track press-track"><div id="bar-vital-pressure" class="vital-fill fill-press" style="width:12%;"></div></div>
               <span id="press-val-text" class="vital-press-num">1.0 BAR</span>
+            </div>
+            <!-- صف الوزن الجديد -->
+            <div class="vital-weight-row">
+              <img class="vital-ico-img" src="voices/kg.webp" alt="" onerror="this.style.opacity='0'">
+              <span id="weight-val-text" class="vital-press-num">0</span>
             </div>
             <div class="tray-amber-edge"></div>
           </div>
@@ -377,27 +376,22 @@ elements.end.classList.remove('visible');elements.narration.classList.remove('na
       <!-- الكتلة اليمنى العليا: البيئة + أزرار القائمة -->
       <div class="hud-top-right-group">
         <div class="env-status-strip">
-          <svg class="env-sun-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#B92828"/><path stroke="#B92828" stroke-width="2.2" stroke-linecap="round" d="M12 1v3m0 16v3M4.22 4.22l2.12 2.12m11.32 11.32l2.12 2.12M1 12h3m16 0h3M4.22 19.78l2.12-2.12m11.32-11.32l2.12-2.12"/></svg> 
+          <img id="weather-icon" class="env-ico-img" src="voices/day.webp" alt="" onerror="this.style.opacity='0'">
           <span id="time-gauge" class="env-time">06:40</span>
           <span class="env-divider">|</span>
-          <svg class="env-wave-ico" viewBox="0 0 24 24"><path fill="none" stroke="#111111" stroke-width="2.6" stroke-linecap="round" d="M2 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg> 
+          <img class="env-ico-img" src="voices/heat.webp" alt="" onerror="this.style.opacity='0'">
+          <span id="temp-gauge" class="env-time">20°</span>
+          <span class="env-divider">|</span>
+          <svg class="env-wave-ico" viewBox="0 0 24 24"><path fill="none" stroke="#7fd4ff" stroke-width="2" stroke-linecap="round" d="M2 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg> 
           <span id="depth-gauge" class="env-depth">- 523 m</span>
         </div>
         <div class="menu-actions-strip">
           <div class="menu-amber-edge"></div>
-          <button id="btn-inventory" class="hud-action-tab" type="button" aria-label="الحقيبة"><svg viewBox="0 0 24 24" fill="#111111"><path d="M19 7h-3V6a4 4 0 0 0-8 0v1H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zm-9-1a2 2 0 0 1 4 0v1h-4V6zm-5 5h14v2h-4v1a1 1 0 0 1-2 0v-1h-2v1a1 1 0 0 1-2 0v-1H5v-2z"/></svg></button> 
+          <button id="btn-inventory" class="hud-action-tab" type="button" aria-label="الحقيبة"><img class="tab-ico-img" src="voices/Inventory.webp" alt="" onerror="this.style.opacity='0'"></button> 
           <!-- زر الخريطة بأيقونة غواصة بحرية متناسقة -->
-          <button id="btn-map-toggle" class="hud-action-tab" type="button" aria-label="الخريطة">
-            <svg class="sub-map-svg" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 13c0-3.3 3.6-6 8-6h4c4.4 0 7 2.7 7 6s-2.6 6-7 6h-4c-4.4 0-8-2.7-8-6z"/>
-              <path d="M12 7V4m0 0h2m-2 0h-1" stroke="#111111"/>
-              <circle cx="10" cy="13" r="1.5" fill="#7F1818"/>
-              <circle cx="15" cy="13" r="1.5" fill="#7F1818"/>
-              <path d="M3 11l-2 2 2 2m-2-2h2" stroke="#B92828"/>
-            </svg>
-          </button>
+          <button id="btn-map-toggle" class="hud-action-tab" type="button" aria-label="الخريطة"><img class="tab-ico-img" src="voices/map.webp" alt="" onerror="this.style.opacity='0'"></button>
           <!-- ترس سيبراني دقيق للإعدادات -->
-          <button id="btn-settings" class="hud-action-tab" type="button" aria-label="الإعدادات"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.8" fill="none" stroke="#111111" stroke-width="1.8"/><path fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" d="M12 2v2.5m0 15V22M2 12h2.5m15 0H22M4.93 4.93l1.8 1.8m10.54 10.54l1.8 1.8M4.93 19.07l1.8-1.8m10.54-10.54l1.8-1.8"/><circle cx="12" cy="12" r="6.2" fill="none" stroke="#111111" stroke-width="1.2"/></svg></button> 
+          <button id="btn-settings" class="hud-action-tab" type="button" aria-label="الإعدادات"><img class="tab-ico-img" src="voices/gear.webp" alt="" onerror="this.style.opacity='0'"></button> 
         </div>
       </div>
     </header>

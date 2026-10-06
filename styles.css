@@ -1936,3 +1936,252 @@ canvas#gameCanvas {
   from { opacity: 1; }
   to { opacity: 0; }
 }
+
+/* ==========================================================================
+   HUD v9 — عصا التحكم والأزرار والعتلة: أسود شفاف + أبيض
+   ========================================================================== */
+
+/* ---------- عصا التحكم (بوصلة زجاجية سوداء) ---------- */
+.compass-base {
+  background: rgba(5, 8, 12, 0.55);
+  border: 2.5px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.compass-reticle {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: none;
+}
+.compass-mark {
+  color: #ffffff;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+}
+.ptr-n { border-color: transparent transparent #ffffff transparent; }
+.ptr-s { border-color: #ffffff transparent transparent transparent; }
+.ptr-e { border-color: transparent transparent transparent #ffffff; }
+.ptr-w { border-color: transparent #ffffff transparent transparent; }
+.compass-knob {
+  background: rgba(255, 255, 255, 0.92);
+  border: 2.5px solid rgba(10, 14, 20, 0.9);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65);
+}
+
+/* ---------- أزرار التحكم الدائرية (كشاف / قفز / تفاعل) ---------- */
+.cyber-round-btn {
+  background: rgba(8, 10, 14, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.cyber-round-btn:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.18);
+}
+/* أيقونات بيضاء محسّنة مع ظل خفيف للوضوح */
+.cyber-round-btn svg,
+.cyber-round-btn svg * {
+  fill: #ffffff;
+  stroke: #ffffff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+.cyber-svg-action { filter: none; }
+.btn-action-themed.compact-exit { border-color: #ff5a5a; }
+
+/* ---------- أزرار القوائم العلوية (حقيبة / خريطة / إعدادات) ---------- */
+.menu-actions-strip {
+  background: rgba(8, 10, 14, 0.55);
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  filter: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.hud-action-tab {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.65);
+  border-radius: 8px;
+  box-shadow: none;
+}
+.hud-action-tab:active {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translate(1px, 1px);
+}
+.hud-action-tab svg,
+.hud-action-tab svg * {
+  fill: #ffffff;
+  stroke: #ffffff;
+}
+
+/* ---------- زر القائمة العائم (خريطة) ---------- */
+.map-nav-btn {
+  background: rgba(8, 10, 14, 0.6);
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.map-nav-btn svg,
+.map-nav-btn svg * {
+  fill: #ffffff;
+  stroke: #ffffff;
+}
+
+/* ---------- عتلة سرعة الغواصة (زجاجية سوداء) ---------- */
+.industrial-throttle-panel {
+  background: rgba(8, 10, 14, 0.72);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 10px;
+  clip-path: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.throttle-slot-cut {
+  background: #04070b;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+.throttle-led-column {
+  background: #04070b;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.led-block { background: #232a33; }
+.led-block.active {
+  background: #ffffff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
+}
+.lever-grip {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.7);
+}
+.lever-cap {
+  background: #ffffff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+}
+.throttle-word { color: #ffffff; }
+.throttle-down-arrow { border-top-color: rgba(255, 255, 255, 0.8); }
+
+/* ==========================================================================
+   HUD v10 — بطاقات نظيفة بدون قص مائل + عصا مبسطة أصغر + خمول تلقائي
+   ========================================================================== */
+
+/* ---------- بطاقة الحيوية: أسود شفاف بزوايا ناعمة ---------- */
+.diver-portrait {
+  background: rgba(8, 10, 14, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  border-radius: 50%;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.vitals-data-tray {
+  clip-path: none;
+  background: rgba(8, 10, 14, 0.6);
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  border-radius: 12px;
+  filter: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  padding: 7px 14px 8px 24px;
+}
+.vital-num,
+.vital-press-num { color: #ffffff; }
+.vital-ico-o2 { width: 16px; height: 16px; display: block; }
+.vital-track { background: rgba(255, 255, 255, 0.16); }
+.fill-hp { background: #ff4d5e; box-shadow: 0 0 6px rgba(255, 77, 94, 0.7); }
+.fill-oxy { background: #4dc3ff; box-shadow: 0 0 6px rgba(77, 195, 255, 0.7); }
+.fill-press { background: #ffffff; box-shadow: 0 0 6px rgba(255, 255, 255, 0.5); }
+
+/* صف الوزن الجديد */
+.vital-weight-row { display: flex; align-items: center; gap: 6px; }
+.vital-ico-weight { width: 13px; height: 13px; flex-shrink: 0; }
+
+/* ---------- بطاقة المهمة: نفس الطراز النظيف ---------- */
+.current-mission-card {
+  clip-path: none;
+  background: rgba(8, 10, 14, 0.6);
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  border-radius: 12px;
+  filter: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.mission-warn-icon {
+  background: #ff9f1c;
+  color: #111;
+  border: none;
+  box-shadow: none;
+}
+.mission-heading { color: #ff9f1c; }
+.mission-subtext { color: #d7e3ee; }
+.mission-chevron { color: rgba(255, 255, 255, 0.6); }
+
+/* ---------- شريط البيئة العلوي: نظيف وغير مقصوص ---------- */
+.env-status-strip {
+  clip-path: none;
+  background: rgba(8, 10, 14, 0.6);
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  border-radius: 12px;
+  filter: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.env-time { color: #ffffff; }
+.env-depth { color: #7fd4ff; }
+.env-divider { color: rgba(255, 255, 255, 0.35); }
+.menu-actions-strip { clip-path: none; border-radius: 12px; }
+
+/* ---------- عصا التحكم: دائرة بسيطة أصغر + خمول تلقائي ---------- */
+.joystick-zone {
+  width: 118px;
+  height: 118px;
+  transition: opacity 0.7s ease;
+}
+.joystick-zone.is-idle { opacity: 0.3; }
+.compass-pointer,
+.compass-mark { display: none; }
+.compass-base {
+  background: rgba(5, 8, 12, 0.45);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+}
+.compass-knob { width: 50px; height: 50px; }
+
+/* ==========================================================================
+   HUD v11 — أيقونات صور voices/ + شفافية بطاقات محسّنة
+   ========================================================================== */
+.env-ico-img { width: 16px; height: 16px; object-fit: contain; display: block; }
+.tab-ico-img { width: 15px; height: 15px; object-fit: contain; display: block; }
+.vital-ico-img { width: 15px; height: 15px; object-fit: contain; display: block; }
+.action-ico-img { width: 26px; height: 26px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)); }
+
+/* شارة النوم فوق أيقونة الأكسجين داخل الغواصة */
+.oxy-wrap { position: relative; display: inline-flex; width: 16px; height: 16px; }
+.oxy-wrap.is-idle::after {
+  content: 'zZ';
+  position: absolute;
+  top: -7px;
+  left: -6px;
+  font-size: 7px;
+  font-weight: 900;
+  color: #4dc3ff;
+  letter-spacing: -1px;
+}
+
+/* بطاقات أوضح: تعتيم أعلى وحدود أوضح */
+.vitals-data-tray,
+.current-mission-card,
+.env-status-strip {
+  background: rgba(5, 7, 10, 0.82);
+  border-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.7);
+}
+.menu-actions-strip {
+  background: rgba(5, 7, 10, 0.78);
+  border-color: rgba(255, 255, 255, 0.55);
+}
