@@ -7,12 +7,18 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#031527">
   <title>Marine Ecosystem Prototype - مقطع بيئي ساحلي</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=20261004-03">  
 </head>
 <body>
   <!-- شاشات التدفق الأولي: ضغطة البدء، فيديو المقدمة، وشريط التحميل -->
   <div id="intro-flow" class="intro-flow-layer">
-    <div id="start-overlay" class="flow-screen lobby-screen">
+    <div id="prestart-overlay" class="flow-screen prestart-screen">
+      <p class="prestart-text">اضغط في أي مكان للبدأ</p>
+    </div>
+    <div id="start-overlay" class="flow-screen lobby-screen hidden">
       <img id="lobbyBg" src="voices/lobby.webp" alt="">
       <div class="lobby-menu">
         <button id="btn-start" class="lobby-start-btn" type="button">لعبة جديدة</button>
@@ -84,6 +90,168 @@
           </div>
         </div>
       </div>
+    </div>
+    <div id="comic-overlay" class="comic-overlay-layer hidden">
+      <style>
+        #comic-overlay{--bg:#08080a;--paper:#f1e6cb;--ink:#111111;--accent:#b92828;touch-action:none;font-family:'Cairo',system-ui,sans-serif;color:#fff}
+        #comic-overlay *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        #comic-overlay button{font:inherit}
+        #loader,#rotate,#end{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center}
+        #loader{flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);transition:.45s}
+        #loader.hidden{opacity:0;visibility:hidden;pointer-events:none}
+        .loaderPanel{width:min(78vw,360px);text-align:center}
+        .loaderTitle{font-size:clamp(18px,4vw,28px);font-weight:900;margin-bottom:15px}
+        .loaderTrack{height:8px;border:2px solid #28282d;background:#111;border-radius:999px;overflow:hidden}
+        .loaderBar{height:100%;width:0;background:var(--accent);transition:width .16s linear}
+        .loaderPercent{margin-top:9px;font-weight:900;font-size:14px}
+        .loaderHint{margin-top:4px;color:#94949d;font-size:11px}
+        #rotate{display:none;flex-direction:column;text-align:center;padding:24px}
+        #rotateIcon{font-size:62px;animation:turn 1.4s ease-in-out infinite}
+        #rotate strong{font-size:20px;margin-top:10px}
+        #rotate small{color:#999;margin-top:5px}
+        @keyframes turn{50%{transform:rotate(90deg)}}
+        #stage{width:100vw;height:100dvh;display:grid;place-items:center;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);background:radial-gradient(circle at 50% 30%,#1d1d22,#0d0d10 45%,#050506)}
+        #viewer{position:relative;width:min(100vw,177.7778dvh);height:min(100dvh,56.25vw);aspect-ratio:16/9;overflow:hidden;background:#0b0b0d;box-shadow:0 14px 60px #000,0 0 0 2px #1c1c20}
+        #sceneImage{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:contrast(1.05);user-select:none;-webkit-user-drag:none;opacity:1;transform:scale(1);transition:opacity .2s ease,transform 1s ease}
+        #sceneImage.sceneLeave{opacity:.82;transform:scale(1.018)}
+        #sceneImage.sceneEnter{opacity:1;transform:scale(1)}
+        #sceneImage.kenBurns{animation:kenBurns 6s ease-out both}
+        @keyframes kenBurns{from{transform:scale(1)}to{transform:scale(1.04)}}
+        #shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(#0006,transparent 23%,transparent 60%,#000b),linear-gradient(90deg,#0002,transparent 18%,transparent 82%,#0002)}
+        #comicFrame{position:absolute;inset:10px;z-index:20;pointer-events:none;border:4px solid var(--ink);box-shadow:inset 0 0 0 2px #ffffff2f,inset 0 0 28px #0004}
+        #comicFrame:before{content:"";position:absolute;inset:7px;border:1px solid #fff2}
+        #sceneBadge{position:absolute;top:19px;right:20px;z-index:25;min-width:44px;height:44px;padding:0 10px;display:grid;place-items:center;background:var(--paper);color:var(--ink);font-weight:900;font-size:16px;line-height:1;border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);transform:rotate(1.5deg)}
+        #progressTrack{position:absolute;top:0;left:0;right:0;height:5px;z-index:30;background:#fff1}
+        #progressBar{height:100%;width:0;background:var(--accent);transition:width .3s ease;box-shadow:0 0 14px #b9282877}
+        #narration{position:absolute;right:5.8%;bottom:7.5%;z-index:25;width:min(620px,56%);opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none}
+        .narrationVisible{opacity:1!important;transform:translateY(0)!important}
+        #narrationBox{position:relative;max-height:clamp(78px,16vh,150px);overflow:hidden;padding:10px 16px;background:var(--paper);color:var(--ink);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);font-size:clamp(12px,1.5vw,19px);font-weight:700;line-height:1.65}
+        #narrationBox:before{content:"";position:absolute;right:22px;bottom:-19px;border-left:11px solid transparent;border-top:19px solid var(--ink)}
+        #narrationBox:after{content:"";position:absolute;right:24px;bottom:-12px;border-left:8px solid transparent;border-top:13px solid var(--paper)}
+        #typedText{unicode-bidi:plaintext;overflow-wrap:anywhere}
+        #cursor{display:inline-block;width:7px;height:1.15em;margin-inline-start:3px;vertical-align:-2px;background:var(--ink);animation:blink .52s step-end infinite}
+        #cursor.still{animation:none;opacity:.3}
+        @keyframes blink{50%{opacity:0}}
+        .nav{position:absolute;top:50%;z-index:26;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;border:3px solid var(--ink);background:var(--paper);color:var(--ink);box-shadow:6px 6px 0 var(--ink);display:grid;place-items:center;font-size:28px;font-weight:900;cursor:pointer;transition:.15s}
+        .nav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round;display:block}
+        .nav:hover{transform:translateY(-50%) translate(-2px,-2px);box-shadow:8px 8px 0 var(--ink)}
+        .nav:active{transform:translateY(-50%) scale(.94);box-shadow:3px 3px 0 var(--ink)}
+        #navNext{right:18px}
+        #navPrev{left:18px}
+        #muteButton,#skipButton,.endButton{z-index:26;border:2px solid var(--ink);background:var(--paper);color:var(--ink);box-shadow:4px 4px 0 var(--ink);cursor:pointer;font-weight:900;transition:.15s}
+        .soundIcon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+        .soundOff{display:none}
+        #muteButton.isMuted .soundOn{display:none}
+        #muteButton.isMuted .soundOff{display:block}
+        #muteButton{top:17px;left:18px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:18px}
+        #skipButton{position:absolute;left:18px;bottom:18px;padding:7px 12px;border-radius:5px;font-size:11px;transform:rotate(-1deg)}
+        #muteButton:hover,#skipButton:hover,.endButton:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+        #muteButton:active,#skipButton:active,.endButton:active{transform:scale(.94);box-shadow:2px 2px 0 var(--ink)}
+        #dots{position:absolute;bottom:18px;right:50%;transform:translateX(50%);z-index:26;display:flex;flex-direction:row-reverse;gap:5px;pointer-events:none}
+        .dot{width:6px;height:6px;border-radius:99px;background:#fff6;border:1px solid #fff9;transition:.22s}
+        .dot.active{width:20px;background:#fff}
+        #end{display:none;flex-direction:column;text-align:center;color:#fff;padding:24px;background:#08080ae8}
+        #end.visible{display:flex}
+        #end h1{margin:0 0 5px;font-size:clamp(28px,6vw,58px);font-weight:900}
+        #end p{margin:0 0 22px;color:#aaa;font-size:14px}
+        .endActions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+        .endButton{padding:10px 17px}
+        .endPrimary{background:var(--accent);color:#fff}
+        @media(orientation:portrait){#rotate{display:flex}#stage{display:none}}
+        @media(max-height:430px){
+          #sceneBadge{top:10px;right:12px;min-width:36px;height:36px;font-size:12px;box-shadow:4px 4px 0 var(--ink)}
+          #muteButton{top:9px;left:11px;width:36px;height:36px;font-size:15px}
+          .nav{width:40px;height:40px;font-size:22px;box-shadow:4px 4px 0 var(--ink)}
+          .nav svg{width:20px;height:20px}
+          #navNext{right:11px}
+          #navPrev{left:11px}
+          #comicFrame{inset:7px;border-width:3px}
+          #narration{right:5%;bottom:7%;width:min(620px,65%)}
+          #narrationBox{max-height:115px;padding:8px 13px;font-size:clamp(11px,1.75vw,17px);line-height:1.55;border-width:3px;box-shadow:4px 4px 0 var(--ink)}
+          #dots{bottom:10px}
+          .dot{height:5px}
+          .dot.active{width:16px}
+          #skipButton{bottom:8px;left:11px;padding:5px 9px;font-size:10px}
+        }
+        @media(prefers-reduced-motion:reduce){#comic-overlay *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+      </style>
+
+      <section id="loader"><div class="loaderPanel"><div class="loaderTitle">جار تحميل اللعبة</div><div class="loaderTrack"><div class="loaderBar" id="loaderBar"></div></div><div class="loaderPercent" id="loaderPercent">0%</div><div class="loaderHint" id="loaderHint">جار تحميل اللعبة...</div></div></section>
+      <section id="rotate"><div id="rotateIcon">↻</div><strong>أدر الهاتف للوضع الأفقي</strong><small>المقدمة مصممة للعرض السينمائي</small></section>
+      <main id="stage"><section id="viewer">
+        <div id="progressTrack"><div id="progressBar"></div></div>
+        <img id="sceneImage" alt="مشهد من القصة" draggable="false">
+        <div id="shade"></div><div id="comicFrame"></div><div id="sceneBadge">01</div>
+        <button id="muteButton" type="button" aria-label="كتم الصوت">
+          <svg class="soundIcon soundOn" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z"></path><path d="M16 9.5c1 1.4 1 3.6 0 5"></path><path d="M18.5 7c2.3 2.8 2.3 7.2 0 10"></path></svg>
+          <svg class="soundIcon soundOff" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z"></path><path d="m17 9 4 6"></path><path d="m21 9-4 6"></path></svg>
+        </button>
+        <div id="narration"><div id="narrationBox"><span id="typedText"></span><span id="cursor"></span></div></div>
+        <button class="nav" id="navNext" type="button" data-action="next" aria-label="التالي"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+        <button class="nav" id="navPrev" type="button" data-action="prev" aria-label="السابق"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+        <button id="skipButton" type="button" data-action="skip">تخطي</button>
+        <div id="dots"></div>
+        <section id="end"><h1>نهاية الفصل</h1><p>هناك سرّ ينتظر في أعماق البحر...</p><div class="endActions"><button class="endButton" id="restartButton">إعادة</button><button class="endButton endPrimary" id="endGameButton">الانتقال إلى اللعبة</button></div></section>
+      </section></main>
+
+      <script>
+      'use strict';
+      // بيانات القصة (منقولة بالكامل من صفحة المقدمة إلى داخل اللعبة)
+      const scenes=[{"image":"https://i.ibb.co/8ynDq31/1.webp","text":"لم يبقَ في حياة الرجل ما يشبه الاستقرار. بلا عمل، والديون تتراكم، كان يحاول أن يتظاهر بأن كل شيء ما زال بخير."},{"image":"https://i.ibb.co/pr9DcBgz/2.webp","text":"وضعت زوجته أمامه أوراق الديون والإيجار المتأخر. لم تعد تريد سماع وعود جديدة؛ كانت تريد حلًا قبل أن يُغلق البيت في وجهيهما."},{"image":"https://i.ibb.co/G3FQm9t1/3.webp","text":"لم يعرف ماذا يقول. نظرت إليه زوجته وكأنها انتظرت طويلًا هذه اللحظة، ثم أدارت ظهرها بعدما فقدت الأمل في أن يتغير شيء."},{"image":"https://i.ibb.co/4Z603HDs/4.webp","text":"في اليوم التالي، أخذت أطفالها وغادرت. بقي واقفًا عند الباب يشاهد عائلته تختفي أمام عينيه، دون أن يملك ما يمنعهم من الرحيل."},{"image":"https://i.ibb.co/gbgGDcsr/5.webp","text":"عاد إلى الأريكة وحده. ولأول مرة، شعر أن البيت الذي كان يجمع عائلته أصبح أوسع من اللازم... وأفرغ من أي معنى."},{"image":"https://i.ibb.co/Z6BKL7sQ/6.webp","text":"ثم جاء الصباح الأسوأ. صاحب المنزل والشرطة أمام بابه، والورقة في يد المالك كانت كافية ليعرف أن الوقت انتهى: عليه أن يغادر الآن."},{"image":"https://i.ibb.co/zWFQ5wQL/7.webp","text":"صار بلا بيت ولا عائلة ولا خطة. دخل الحانة بحثًا عن ساعات من النسيان، لكن عينًا غريبة كانت تتابعه من بعيد."},{"image":"https://i.ibb.co/hJ5FFb27/8.webp","text":"ما إن خرج حتى انقلب كل شيء. رجال مجهولون أمسكوا به وسحبوه بعيدًا قبل أن يفهم من أرسلهم أو ماذا يريدون."},{"image":"https://i.ibb.co/svtvGbS5/9.webp","text":"حين فتح عينيه كان مربوطًا إلى كرسي في مستودع. ثم ظهرت صور زوجته وأطفاله أمامه، وجاء السؤال الذي لم يفهم كيف أصبح جزءًا منه: أين المال؟"},{"image":"https://i.ibb.co/sJCMBQxz/10.webp","text":"اكتشف الحقيقة التي طاردته طوال الليل: زوجته اختفت ومعها شحنة تساوي خمسين مليون دولار، والأطفال أصبحوا رهائن. أُعطي ثلاثين يومًا لإعادة المال... وإلا."},{"image":"https://i.ibb.co/VWt8BhKq/11.webp","text":"بعد إطلاق سراحه، لم يكن يعرف أين يذهب. حمل ما تبقى من كرامته واتجه إلى البحر، محاولًا إسكات رأسه بأي شيء."},{"image":"https://i.ibb.co/vnYCTwT/12.webp","text":"لكن البحر لم يمنحه فرصة. هبّت عاصفة مفاجئة، وارتفعت أمامه موجة ضخمة لم تترك له وقتًا للهرب."},{"image":"https://i.ibb.co/QjcNdLLs/14.webp","text":"أعادته الأمواج إلى الشاطئ بعدما هدأت العاصفة. بقي فاقدًا للوعي، لكنه لم يكن وحيدًا... ففي عرض البحر ظهرت غواصة صفراء، تراقب المكان بصمت."}];
+      const placeholderImage='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900"><rect width="1600" height="900" fill="#17171b"/><rect x="80" y="80" width="1440" height="740" fill="#0d0d10" stroke="#b92828" stroke-width="8"/><text x="800" y="450" fill="#f1e6cb" font-family="Arial" font-size="52" text-anchor="middle">حدث خطأ اثناء تحميل اللعبة</text></svg>');
+      const elements={loader:document.getElementById('loader'),loaderBar:document.getElementById('loaderBar'),loaderPercent:document.getElementById('loaderPercent'),loaderHint:document.getElementById('loaderHint'),viewer:document.getElementById('viewer'),image:document.getElementById('sceneImage'),progress:document.getElementById('progressBar'),badge:document.getElementById('sceneBadge'),narration:document.getElementById('narration'),text:document.getElementById('typedText'),cursor:document.getElementById('cursor'),dots:document.getElementById('dots'),end:document.getElementById('end'),mute:document.getElementById('muteButton')};
+      const state={currentScene:0,typing:false,paused:false,muted:localStorage.getItem('comicMuted')==='1',pointerHandled:false,transitioning:false,startX:0,startY:0,renderTimeout:null,typingTimeout:null,renderController:null,typingIndex:0,audioContext:null,masterGain:null,lastBlipTime:0,booted:false};
+
+      scenes.forEach((scene,index)=>{const dot=document.createElement('span');dot.className='dot';dot.dataset.scene=index;elements.dots.appendChild(dot)});
+
+      // الصوت: صوت حوار قصير مولّد بـ Web Audio
+      function ensureAudio(){try{if(!state.audioContext){state.audioContext=new(window.AudioContext||window.webkitAudioContext)();state.masterGain=state.audioContext.createGain();state.masterGain.gain.value=state.muted?0:1;state.masterGain.connect(state.audioContext.destination)}if(state.audioContext.state==='suspended')state.audioContext.resume().catch(()=>{})}catch(_){}}
+      function setMuted(value){state.muted=!!value;try{localStorage.setItem('comicMuted',state.muted?'1':'0')}catch(_){}elements.mute.classList.toggle('isMuted',state.muted);elements.mute.setAttribute('aria-label',state.muted?'تشغيل الصوت':'كتم الصوت');try{if(state.masterGain){const now=state.audioContext.currentTime;state.masterGain.gain.cancelScheduledValues(now);state.masterGain.gain.setTargetAtTime(state.muted?0:1,now,.018)}}catch(_){}}
+      function playDialogueBlip(){try{ensureAudio();if(state.muted||!state.audioContext||!state.masterGain)return;const performanceTime=performance.now();if(performanceTime-state.lastBlipTime<72)return;state.lastBlipTime=performanceTime;const context=state.audioContext;const now=context.currentTime;const output=context.createGain();const filter=context.createBiquadFilter();const oscillator=context.createOscillator();const frequency=245+(Math.random()*35);oscillator.type='triangle';oscillator.frequency.setValueAtTime(frequency,now);oscillator.frequency.exponentialRampToValueAtTime(frequency*.92,now+.055);filter.type='lowpass';filter.frequency.setValueAtTime(1800,now);filter.Q.value=.45;output.gain.setValueAtTime(.0001,now);output.gain.exponentialRampToValueAtTime(.035,now+.006);output.gain.exponentialRampToValueAtTime(.0001,now+.065);oscillator.connect(output);output.connect(filter);filter.connect(state.masterGain);oscillator.start(now);oscillator.stop(now+.075)}catch(_){}}
+
+      // تحميل كل الصور (يتم استدعاؤه صامتًا فور تحميل الصفحة)
+      function preloadImages(){return Promise.all(scenes.map(scene=>new Promise(resolve=>{const image=new Image();image.decoding='async';let done=false;const finish=failed=>{if(done)return;done=true;scene.loadedImage=failed?placeholderImage:image.src;const count=scenes.filter(item=>item.loadedImage).length;const percent=Math.round(count/scenes.length*100);elements.loaderBar.style.width=percent+'%';elements.loaderPercent.textContent=percent+'%';elements.loaderHint.textContent=failed?'تم تجاوز صورة غير متاحة...':(percent<100?'جار تحميل اللعبة...':'اكتمل تحميل اللعبة');resolve()};image.onload=()=>finish(false);image.onerror=()=>finish(true);image.src=scene.image})))}
+
+      // إدارة المؤقتات
+      function clearTimers(){if(state.renderTimeout){clearTimeout(state.renderTimeout);state.renderTimeout=null}if(state.typingTimeout){clearTimeout(state.typingTimeout);state.typingTimeout=null}}
+      function finishTyping(){if(!state.typing)return;clearTimeout(state.typingTimeout);state.typing=false;elements.text.textContent=scenes[state.currentScene].text;elements.cursor.classList.add('still')}
+      function typeNarration(value){clearTimeout(state.typingTimeout);state.typing=true;state.typingIndex=0;elements.text.textContent='';elements.cursor.classList.remove('still');elements.narration.classList.remove('narrationVisible');requestAnimationFrame(()=>elements.narration.classList.add('narrationVisible'));const write=()=>{if(state.paused||!state.typing)return;if(state.typingIndex>=value.length){finishTyping();return}const character=value[state.typingIndex++];elements.text.textContent+=character;if(state.typingIndex%4===0||character==='،'||character==='.'||character==='؟')playDialogueBlip();state.typingTimeout=setTimeout(write,28)};state.typingTimeout=setTimeout(write,28)}
+
+      // عرض المشهد بدون شاشة سوداء
+      function updateChrome(){elements.badge.textContent=String(state.currentScene+1).padStart(2,'0');elements.progress.style.width=((state.currentScene+1)/scenes.length*100)+'%';[...elements.dots.children].forEach((dot,index)=>dot.classList.toggle('active',index===state.currentScene))}
+      function renderScene(){clearTimers();if(state.renderController)state.renderController.abort();state.renderController=new AbortController();state.typing=false;
+elements.end.classList.remove('visible');elements.narration.classList.remove('narrationVisible');elements.cursor.classList.remove('still');elements.image.classList.remove('kenBurns');elements.image.classList.add('sceneLeave');updateChrome();const scene=scenes[state.currentScene];state.renderTimeout=setTimeout(()=>{state.renderTimeout=null;const controller=state.renderController;let swapped=false;const finishSwap=()=>{if(swapped||controller.signal.aborted)return;swapped=true;elements.image.classList.remove('sceneLeave');elements.image.classList.add('sceneEnter');requestAnimationFrame(()=>{elements.image.classList.remove('sceneEnter');elements.image.classList.add('kenBurns')});typeNarration(scene.text)};elements.image.addEventListener('load',finishSwap,{once:true,signal:controller.signal});elements.image.addEventListener('error',()=>{elements.image.src=placeholderImage},{once:true,signal:controller.signal});elements.image.src=scene.loadedImage||placeholderImage;if(elements.image.complete)requestAnimationFrame(finishSwap)},180)}
+
+      // التنقّل
+      function saveScene(){try{sessionStorage.setItem('comicCurrentScene',String(state.currentScene))}catch(_){}}
+      function restoreScene(){try{const value=Number.parseInt(sessionStorage.getItem('comicCurrentScene')||'0',10);return Number.isFinite(value)?Math.max(0,Math.min(value,scenes.length-1)):0}catch(_){return 0}}
+      function nextScene(){if(state.transitioning)return;state.transitioning=true;try{ensureAudio()}catch(_){}if(state.typing){finishTyping();state.transitioning=false;return}if(state.currentScene===scenes.length-1){clearTimers();elements.end.classList.add('visible');state.transitioning=false;return}state.currentScene++;saveScene();renderScene();setTimeout(()=>{state.transitioning=false},220)}
+      function previousScene(){try{ensureAudio()}catch(_){}if(state.typing){finishTyping();return}if(state.currentScene===0)return;state.currentScene--;saveScene();renderScene()}
+      function skipStory(){if(state.transitioning)return;state.transitioning=true;clearTimers();state.typing=false;state.currentScene=scenes.length-1;saveScene();renderScene();setTimeout(()=>{state.transitioning=false},220)}
+
+      // أحداث التنقّل: delegation + حماية من touch/click المزدوج
+      elements.viewer.addEventListener('click',event=>{if(state.pointerHandled){state.pointerHandled=false;return}if(event.target.closest('#muteButton')){setMuted(!state.muted);return}if(event.target.closest('#end'))return;const actionElement=event.target.closest('[data-action]');if(actionElement){const action=actionElement.dataset.action;if(action==='next')nextScene();else if(action==='prev')previousScene();else if(action==='skip')skipStory();return}if(state.typing){finishTyping();return}nextScene()});
+      elements.mute.addEventListener('click',event=>event.stopPropagation());
+      elements.viewer.addEventListener('pointerdown',event=>{state.pointerHandled=false;state.startX=event.clientX;state.startY=event.clientY});
+      elements.viewer.addEventListener('pointerup',event=>{const swipeDistance=state.startX-event.clientX,verticalDistance=Math.abs(state.startY-event.clientY);if(Math.abs(swipeDistance)>55&&Math.abs(swipeDistance)>verticalDistance){state.pointerHandled=true;if(state.typing)finishTyping();else if(swipeDistance>0)nextScene();else previousScene()}});
+
+      document.addEventListener('keydown',event=>{if(event.key==='ArrowLeft')nextScene();else if(event.key==='ArrowRight')previousScene();else if(event.key==='Enter'||event.key===' '){if(state.typing)finishTyping();else nextScene()}});
+      document.getElementById('restartButton').addEventListener('click',()=>{state.currentScene=0;saveScene();renderScene()});
+      // إنهاء القصة: إبلاغ اللعبة مباشرة (بدون صفحات أو رسائل بين نوافذ)
+      document.getElementById('endGameButton').addEventListener('click',()=>{try{if(window.__comicDone)window.__comicDone()}catch(_){}});
+
+      document.addEventListener('visibilitychange',()=>{state.paused=document.hidden;if(!state.paused&&state.typing){const text=scenes[state.currentScene].text;const resume=()=>{if(state.paused||!state.typing)return;if(state.typingIndex>=text.length){finishTyping();return}const character=text[state.typingIndex++];elements.text.textContent+=character;if(state.typingIndex%4===0||character==='،'||character==='.'||character==='؟')playDialogueBlip();state.typingTimeout=setTimeout(resume,28)};clearTimeout(state.typingTimeout);state.typingTimeout=setTimeout(resume,28)}});
+      window.addEventListener('pagehide',saveScene);
+      window.addEventListener('pageshow',event=>{if(state.booted&&event.persisted){state.currentScene=restoreScene();renderScene()}});
+
+      setMuted(state.muted);
+
+      // تحميل مسبق صامت: صور القصة تجهز خلف الشاشة السوداء دون عرض أي شيء
+      (async function silentPreload(){try{await preloadImages()}catch(_){scenes.forEach(scene=>{scene.loadedImage=scene.loadedImage||placeholderImage})}})();
+
+      // واجهة التحكم الخارجية: اللعبة تستدعي start() عند أول زيارة
+      window.ComicIntro={start(){state.currentScene=0;try{ensureAudio()}catch(_){}if(state.renderController)state.renderController.abort();clearTimers();elements.loader.classList.add('hidden');state.booted=true;requestAnimationFrame(renderScene)}};
+      </script>
     </div>
   </div>
 

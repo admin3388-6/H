@@ -4296,6 +4296,10 @@
       this.onComplete = onComplete;
       this.flowEl = document.getElementById('intro-flow');
       this.startEl = document.getElementById('start-overlay');
+      this.prestartEl = document.getElementById('prestart-overlay');
+      this.comicEl = document.getElementById('comic-overlay');
+      if (this.startEl) this.startEl.classList.add('hidden');
+      this._assetsReady = false;
       this.loadEl = document.getElementById('loading-overlay');
       this.barEl = document.getElementById('loading-progress');
       this.pctEl = document.getElementById('loading-percent');
@@ -4364,10 +4368,30 @@
 
 
         initEvents() {
+      if (this.prestartEl) {
+        const onPreTap = (e) => {
+          e.stopPropagation();
+          this.unlockAudioOnGesture();
+          this.lockLandscapeAndFullscreen();
+          GameLogger.log('FLOW', 'INFO', 'Prestart tapped');
+          this.prestartEl.classList.add('hidden');
+          this.goToLoader();
+        };
+        this.prestartEl.addEventListener('pointerup', onPreTap);
+        this.prestartEl.addEventListener('click', onPreTap);
+      }
       if (!this.startEl) return;
 
       const onStartTap = (e) => {
         e.stopPropagation();
+        GameLogger.log('FLOW', 'INFO', 'Lobby start tapped');
+
+        // الموارد جاهزة مسبقاً: ابدأ اللعبة فوراً دون شريط تحميل ثانٍ
+        if (this._assetsReady) {
+          this.startGame();
+          return;
+        }
+
         // منع تكرار الضغط أثناء التجهيز
         const menu = this.startEl.querySelector('.lobby-menu');
         if (menu) menu.classList.add('is-busy');
@@ -4377,7 +4401,6 @@
         // فك الصوت أولاً
         this.unlockAudioOnGesture();
 
-        GameLogger.log('FLOW', 'INFO', 'Lobby start tapped');
         this.goToLoader();
 
         this.lockLandscapeAndFullscreen();
@@ -4579,10 +4602,68 @@
 
       await new Promise((r) => setTimeout(r, 220));
 
-      this.markIntroCompleted();
+      this._assetsReady = true;
 
+      // عرض المقدمة الكوميكية في أول زيارة فقط
+      let seen = false;
+      try { seen = localStorage.getItem('marine_intro_seen') === '1'; } catch (_) {}
+      if (!seen) {
+        this.showComic(() => this.showLobby());
+      } else {
+        this.showLobby();
+      }
+    }
+
+    // إظهار الـLobby بتلاشٍ متدرج بعد التجهيز أو بعد المقدمة
+    showLobby() {
+      if (this.loadEl) this.loadEl.classList.add('hidden');
+      if (this.startEl) {
+        this.startEl.classList.remove('hidden');
+        this.startEl.classList.add('fade-in');
+      }
+    }
+
+    // بدء اللعبة بعد اكتمال كل الموارد (يُعلَّم أن المقدمة شوهدت)
+    startGame() {
+      this.markIntroCompleted();
       if (this.flowEl) this.flowEl.classList.add('finished');
       if (this.onComplete) this.onComplete(this.preloadedAudio, this.audioCtx);
+    }
+
+    // عرض المقدمة الكوميكية المدمجة (أول زيارة) ثم تلاشيها نحو الـLobby
+    showComic(onDone) {
+      if (this.loadEl) this.loadEl.classList.add('hidden');
+      if (!this.comicEl) { if (onDone) onDone(); return; }
+
+      this.comicEl.classList.remove('hidden');
+      this.comicEl.classList.add('fade-in');
+
+      let finished = false;
+      let bailTimer = null;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        if (bailTimer) clearTimeout(bailTimer);
+        window.__comicDone = null;
+        this.comicEl.classList.add('fade-out');
+        setTimeout(() => {
+          this.comicEl.classList.add('hidden');
+          this.comicEl.classList.remove('fade-in', 'fade-out');
+          if (onDone) onDone();
+        }, 700);
+      };
+
+      // احتياط: تجاوز المقدمة إذا تعطل النظام (3 دقائق كحد أقصى)
+      bailTimer = setTimeout(finish, 180000);
+
+      // انتهاء القصة يصل مباشرة من زر "الانتقال إلى اللعبة" داخل نفس الصفحة
+      window.__comicDone = finish;
+
+      if (window.ComicIntro && window.ComicIntro.start) {
+        window.ComicIntro.start();
+      } else {
+        finish();
+      }
     }
   }
 

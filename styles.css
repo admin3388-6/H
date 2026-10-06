@@ -1865,19 +1865,74 @@ canvas#gameCanvas {
 .lobby-modal-card p { color: #b9bdc2; }
 .lobby-setting-row { color: #EDEDE8; }
 /* ==========================================================================
-   LOBBY v7 — بلا بطاقة حاوية: الأزرار عائمة مباشرة فوق الصورة
+   LOBBY v8 — يمين الشاشة + أزرار سوداء + أيقونات بيضاء
    ========================================================================== */
 
-/* إلغاء الخلفية والحدود والضبابية عن الحاوية نفسها */
+/* نقل القائمة كاملة إلى جهة اليمين */
 .lobby-menu {
   background: transparent;
   border: none;
   box-shadow: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
+  left: auto;
+  right: calc(var(--safe-right) + 18px);
 }
 
-/* كل زر يحمل خلفيته الداكنة الخفيفة بنفسه ليبقى مقروءاً فوق الصورة */
-.lobby-btn-secondary { background: rgba(12, 12, 14, 0.6); }
-.lobby-start-btn { background: rgba(12, 12, 14, 0.82); }
-.lobby-mini-btn { background: rgba(12, 12, 14, 0.6); }
+/* تعتيم تدرّجي يمينًا خلف الأزرار بدل اليسار */
+#start-overlay.lobby-screen::before {
+  background: linear-gradient(-90deg, rgba(8, 8, 10, 0.55) 0%, rgba(8, 8, 10, 0.25) 32%, rgba(8, 8, 10, 0) 55%);
+}
+
+/* أزرار سوداء صلبة بحدود خفيفة */
+.lobby-btn-secondary { background: #000000; }
+.lobby-start-btn { background: #000000; border-color: rgba(255, 255, 255, 0.35); }
+.lobby-mini-btn { background: #000000; }
+
+/* الأيقونات البيضاء داخل أزرار اللوبي */
+.lobby-mini-btn svg,
+.lobby-mini-btn svg * {
+  stroke: #ffffff !important;
+}
+
+/* ==========================================================================
+   شاشة ما قبل البدء + طبقة المقدمة الكوميكية
+   ========================================================================== */
+.prestart-screen {
+  background: #000000;
+  cursor: pointer;
+  z-index: 95000;
+}
+
+.prestart-text {
+  color: #ffffff;
+  font-size: clamp(1.1rem, 3vw, 1.6rem);
+  font-weight: 700;
+  letter-spacing: 1px;
+  animation: pulsePrompt 2s ease-in-out infinite;
+}
+
+.comic-overlay-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 94000;
+  background: #000;
+}
+
+.comic-overlay-layer.hidden { display: none !important; }
+
+.comic-overlay-layer iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+/* تلاشي دخول وخروج ناعم */
+.fade-in { animation: fadeIn 0.8s ease-out both; }
+.fade-out { animation: fadeOut 0.7s ease-in both; }
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
