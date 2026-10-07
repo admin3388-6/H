@@ -9,7 +9,7 @@
   <title>Marine Ecosystem Prototype - مقطع بيئي ساحلي</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Press+Start+2P&family=Reem+Kufi:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=20261004-03">  
 </head>
 <body>
@@ -27,13 +27,13 @@
         <button id="btn-lobby-settings" class="lobby-btn-secondary" type="button">الإعدادات</button>
         <div class="lobby-mini-row">
           <button id="btn-lobby-web" class="lobby-mini-btn" type="button" aria-label="الموقع والتواصل">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 2.6 4 5.7 4 9s-1.2 6.4-4 9c-2.8-2.6-4-5.7-4-9s1.2-6.4 4-9z"/></svg>
+            <img class="lobby-mini-ico" src="voices/web.webp" alt="" onerror="this.style.opacity='0'">
           </button>
           <button id="btn-lobby-news" class="lobby-mini-btn" type="button" aria-label="ما الجديد">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="round"><path d="M4 5h13v15H6a2 2 0 0 1-2-2V5z"/><path d="M17 8h3v10a2 2 0 0 1-2 2h-1"/><path d="M7 9h7M7 13h7M7 17h4"/></svg>
+            <img class="lobby-mini-ico" src="voices/news.webp" alt="" onerror="this.style.opacity='0'">
           </button>
           <button id="btn-lobby-store" class="lobby-mini-btn" type="button" aria-label="المتجر">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="round"><path d="M4 7l1.5-3h13L20 7M4 7h16v3a2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0V7z"/><path d="M6 12v8h12v-8M10 20v-5h4v5"/></svg>
+            <img class="lobby-mini-ico" src="voices/Shop.webp" alt="" onerror="this.style.opacity='0'">
           </button>
         </div>
         <p id="lobby-status" class="lobby-status"></p>
@@ -44,6 +44,13 @@
           <h2>الإعدادات</h2>
           <label class="lobby-setting-row">مستوى الصوت الرئيسي
             <input id="lobby-volume" type="range" min="0" max="100" value="85">
+          </label>
+          <label class="lobby-setting-row">جودة الرسومات
+            <select id="lobby-quality">
+              <option value="normal">عادية — أداء أعلى للأجهزة الضعيفة</option>
+              <option value="high" selected>عالية — متوازنة</option>
+              <option value="max">قصوى — أغنى تفاصيل</option>
+            </select>
           </label>
           <button class="lobby-btn-secondary lobby-modal-close" data-close="lobby-modal-settings" type="button">إغلاق</button>
         </div>
@@ -324,47 +331,63 @@ elements.end.classList.remove('visible');elements.narration.classList.remove('na
 
     <!-- واجهة القيادة المطابقة للمخطط بنسبة 100% -->
     <header id="hud" class="hud-layer">
-      <!-- الكتلة اليسرى العليا: الحيوية + المهمة الحالية -->
+      <!-- الكتلة اليسرى العليا: الحيوية وأزرار القائمة الجانبية -->
       <div class="hud-left-vitals-group">
         <div class="diver-vitals-strip">
-          <div class="diver-portrait">
-            <img id="hud-avatar-img" class="avatar-circle-img" src="voices/PlayerCircle.png" alt="Avatar" onerror="this.style.opacity='0'">
-          </div>
           <div class="vitals-data-tray">
-            <div class="vitals-upper-row">
-              <div class="vital-col">
-                <div class="vital-top">
-                  <img id="hp-icon-diver" class="vital-ico-img" src="voices/heart.webp" alt="" onerror="this.style.opacity='0'">
-                  <img id="hp-icon-sub" class="vital-ico-img" src="voices/submarine.webp" alt="" style="display:none" onerror="this.style.opacity='0'">
-                  <span id="hp-val-text" class="vital-num">100/100</span>
-                </div>
-                <div class="vital-track"><div id="bar-player-hp" class="vital-fill fill-hp" style="width:100%;"></div></div>
+            <!-- 1. شريط الصحة وبجانبه أيقونة القلب يميناً -->
+            <div class="vital-bar-row">
+              <div class="vital-track">
+                <div id="bar-player-hp" class="vital-fill fill-hp" style="width:100%;"></div>
+                <span id="hp-val-text" class="vital-num">100/100</span>
               </div>
-              <div class="vital-col">
-                <div class="vital-top">
-                  <span id="oxy-icon-wrap" class="oxy-wrap"><img class="vital-ico-img" src="voices/O2.webp" alt="" onerror="this.style.opacity='0'"></span>
-                  <span id="oxy-val-text" class="vital-num">100/100</span>
-                </div>
-                <div class="vital-track"><div id="bar-oxygen" class="vital-fill fill-oxy" style="width:85%;"></div></div>
+              <div class="vital-ico-cell">
+                <img id="hp-icon-diver" class="vital-ico-img" src="voices/heart.webp" alt="" onerror="this.style.opacity='0'">
+                <img id="hp-icon-sub" class="vital-ico-img" src="voices/submarine.webp" alt="" style="display:none" onerror="this.style.opacity='0'">
               </div>
             </div>
-            <!-- شريط قياس الضغط المدمج الجديد تحت الصحة والأكسجين -->
-            <div class="vital-pressure-row">
-             <svg class="vital-ico-press" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round"><path d="M4.5 16.5a7.5 7.5 0 1 1 15 0"/><path d="M12 16.5l4-5"/><circle cx="12" cy="16.5" r="1.4" fill="#ffffff" stroke="none"/><path d="M4.5 16.5h2M17.5 16.5h2M12 9V7"/></svg> 
-              <div class="vital-track press-track"><div id="bar-vital-pressure" class="vital-fill fill-press" style="width:12%;"></div></div>
-              <span id="press-val-text" class="vital-press-num">1.0 BAR</span>
+
+            <!-- 2. شريط الأكسجين وبجانبه أيقونة O2 يميناً -->
+            <div class="vital-bar-row">
+              <div class="vital-track">
+                <div id="bar-oxygen" class="vital-fill fill-oxy" style="width:100%;"></div>
+                <span id="oxy-val-text" class="vital-num">100/100</span>
+              </div>
+              <div class="vital-ico-cell">
+                <span id="oxy-icon-wrap" class="oxy-wrap">
+                  <img class="vital-ico-img" src="voices/O2.webp" alt="" onerror="this.style.opacity='0'">
+                </span>
+              </div>
             </div>
-            <!-- صف الوزن الجديد -->
+
+            <!-- 3. شريط الضغط المصغر بدون نص وبجانبه أيقونة الضغط يميناً -->
+            <div class="vital-bar-row">
+              <div class="vital-track press-track">
+                <div id="bar-vital-pressure" class="vital-fill fill-press" style="width:12%;"></div>
+              </div>
+              <div class="vital-ico-cell">
+                <img class="vital-ico-img" src="voices/pressure.webp" alt="" onerror="this.style.opacity='0'">
+              </div>
+            </div>
+
+            <!-- 4. سطر الوزن تحت شريط الضغط مباشرة -->
             <div class="vital-weight-row">
+              <span id="weight-val-text" class="vital-weight-num">0 kg</span>
               <img class="vital-ico-img" src="voices/kg.webp" alt="" onerror="this.style.opacity='0'">
-              <span id="weight-val-text" class="vital-press-num">0</span>
             </div>
-            <div class="tray-amber-edge"></div>
+          </div>
+
+          <!-- الأزرار الثلاثة عمودياً بجانب الأشرطة يميناً بدون بطاقة خلفية -->
+          <div class="vitals-side-actions">
+            <button id="btn-inventory" class="hud-action-tab" type="button" aria-label="الحقيبة"><img class="tab-ico-img" src="voices/Inventory.webp" alt="" onerror="this.style.opacity='0'"></button>
+            <button id="btn-map-toggle" class="hud-action-tab" type="button" aria-label="الخريطة"><img class="tab-ico-img" src="voices/map.webp" alt="" onerror="this.style.opacity='0'"></button>
+            <button id="btn-settings" class="hud-action-tab" type="button" aria-label="الإعدادات"><img class="tab-ico-img" src="voices/gear.webp" alt="" onerror="this.style.opacity='0'"></button>
           </div>
         </div>
-        <!-- بطاقة المهمة الحالية المشطوفة -->
+
+        <!-- بطاقة المهمة الحالية -->
         <div class="current-mission-card">
-          <div class="mission-warn-icon">!</div>
+          <img class="mission-tab-ico" src="voices/task.webp" alt="" onerror="this.style.opacity='0'">
           <div class="mission-text-box">
             <span class="mission-heading">المهمة الحالية</span>
             <span class="mission-subtext">استكشف المنطقة وتحقق من الإشارة</span>
@@ -373,7 +396,7 @@ elements.end.classList.remove('visible');elements.narration.classList.remove('na
         </div>
       </div>
 
-      <!-- الكتلة اليمنى العليا: البيئة + أزرار القائمة -->
+      <!-- الكتلة اليمنى العليا: مستطيل الوقت والعمق فقط -->
       <div class="hud-top-right-group">
         <div class="env-status-strip">
           <img id="weather-icon" class="env-ico-img" src="voices/day.webp" alt="" onerror="this.style.opacity='0'">
@@ -382,16 +405,8 @@ elements.end.classList.remove('visible');elements.narration.classList.remove('na
           <img class="env-ico-img" src="voices/heat.webp" alt="" onerror="this.style.opacity='0'">
           <span id="temp-gauge" class="env-time">20°</span>
           <span class="env-divider">|</span>
-          <svg class="env-wave-ico" viewBox="0 0 24 24"><path fill="none" stroke="#7fd4ff" stroke-width="2" stroke-linecap="round" d="M2 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg> 
+          <img class="env-ico-img" src="voices/depth.webp" alt="" onerror="this.style.opacity='0'">
           <span id="depth-gauge" class="env-depth">- 523 m</span>
-        </div>
-        <div class="menu-actions-strip">
-          <div class="menu-amber-edge"></div>
-          <button id="btn-inventory" class="hud-action-tab" type="button" aria-label="الحقيبة"><img class="tab-ico-img" src="voices/Inventory.webp" alt="" onerror="this.style.opacity='0'"></button> 
-          <!-- زر الخريطة بأيقونة غواصة بحرية متناسقة -->
-          <button id="btn-map-toggle" class="hud-action-tab" type="button" aria-label="الخريطة"><img class="tab-ico-img" src="voices/map.webp" alt="" onerror="this.style.opacity='0'"></button>
-          <!-- ترس سيبراني دقيق للإعدادات -->
-          <button id="btn-settings" class="hud-action-tab" type="button" aria-label="الإعدادات"><img class="tab-ico-img" src="voices/gear.webp" alt="" onerror="this.style.opacity='0'"></button> 
         </div>
       </div>
     </header>
@@ -419,6 +434,86 @@ elements.end.classList.remove('visible');elements.narration.classList.remove('na
       </div>
       <div class="radar-canvas-wrap">
         <canvas id="mapCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- قائمة المطور المتحركة العائمة (Mod / Developer Menu) -->
+  <div id="dev-menu-root" class="dev-menu-root">
+    <!-- زر الفتح والإغلاق العائم -->
+    <button id="dev-fab-toggle" class="dev-fab-btn" type="button" aria-label="قائمة المطور">DEV</button>
+
+    <!-- بطاقة التحكم المنزلقة والقابلة للسحب -->
+    <div id="dev-panel" class="dev-panel hidden">
+      <div id="dev-panel-header" class="dev-panel-header">
+        <span class="dev-title">🛠️ DEV MOD MENU</span>
+        <button id="dev-btn-close" class="dev-close-x" type="button">✕</button>
+      </div>
+
+      <div class="dev-panel-body">
+        <!-- زر التخطي السريع إلى داخل اللعبة فوراً -->
+        <div class="dev-section">
+          <button id="dev-btn-fast-skip" class="dev-action-btn dev-btn-primary" type="button">⚡ تخطي سريع إلى اللعبة فوراً</button>
+        </div>
+
+        <!-- وضع الخلود والإنعاش -->
+        <div class="dev-section">
+          <div class="dev-sec-title">حالة اللاعب (Vitals)</div>
+          <div class="dev-grid-2">
+            <button id="dev-btn-god" class="dev-action-btn" type="button">الخلود: معطل</button>
+            <button id="dev-btn-heal" class="dev-action-btn" type="button">❤️ تعبئة الصحة والأكسجين</button>
+          </div>
+          <button id="dev-btn-fix-sub" class="dev-action-btn" type="button" style="margin-top:5px;">⚓ إصلاح الغواصة بالكامل</button>
+        </div>
+
+        <!-- السرعة والقفز -->
+        <div class="dev-section">
+          <div class="dev-sec-title">الفيزياء والحركة</div>
+          <label class="dev-label">سرعة الحركة: <span id="dev-speed-val">1x</span></label>
+          <div class="dev-btn-row">
+            <button class="dev-opt-btn dev-speed-opt" data-spd="1" type="button">1x</button>
+            <button class="dev-opt-btn dev-speed-opt" data-spd="2" type="button">2x</button>
+            <button class="dev-opt-btn dev-speed-opt" data-spd="3.5" type="button">3.5x</button>
+            <button class="dev-opt-btn dev-speed-opt" data-spd="6" type="button">6x</button>
+          </div>
+
+          <label class="dev-label" style="margin-top:6px;">قوة القفز: <span id="dev-jump-val">1x</span></label>
+          <div class="dev-btn-row">
+            <button class="dev-opt-btn dev-jump-opt" data-jmp="1" type="button">عادي</button>
+            <button class="dev-opt-btn dev-jump-opt" data-jmp="1.6" type="button">عالي</button>
+            <button class="dev-opt-btn dev-jump-opt" data-jmp="2.4" type="button">خارق</button>
+          </div>
+        </div>
+
+        <!-- الطقس والوقت -->
+        <div class="dev-section">
+          <div class="dev-sec-title">الطقس والبيئة</div>
+          <div class="dev-btn-row">
+            <button class="dev-opt-btn dev-wthr-opt" data-w="sun" type="button">☀️ مشمس</button>
+            <button class="dev-opt-btn dev-wthr-opt" data-w="cloud" type="button">☁️ غائم</button>
+            <button class="dev-opt-btn dev-wthr-opt" data-w="storm" type="button">⛈️ عاصفة</button>
+            <button class="dev-opt-btn dev-wthr-opt" data-w="snow" type="button">❄️ مثلج</button>
+          </div>
+          <div class="dev-btn-row" style="margin-top:5px;">
+            <button class="dev-opt-btn dev-time-opt" data-t="400" type="button">🌅 شروق</button>
+            <button class="dev-opt-btn dev-time-opt" data-t="720" type="button">☀️ ظهيرة</button>
+            <button class="dev-opt-btn dev-time-opt" data-t="1080" type="button">🌇 غروب</button>
+            <button class="dev-opt-btn dev-time-opt" data-t="0" type="button">🌙 ليل</button>
+          </div>
+        </div>
+
+        <!-- الانتقال الآني (Teleport) -->
+        <div class="dev-section">
+          <div class="dev-sec-title">الانتقال الآني للأعماق (Teleport)</div>
+          <div class="dev-grid-3">
+            <button class="dev-opt-btn dev-tp-opt" data-depth="0" type="button">السطح 0م</button>
+            <button class="dev-opt-btn dev-tp-opt" data-depth="25" type="button">الضحل 25م</button>
+            <button class="dev-opt-btn dev-tp-opt" data-depth="100" type="button">الجدار 100م</button>
+            <button class="dev-opt-btn dev-tp-opt" data-depth="500" type="button">الخطر 500م</button>
+            <button class="dev-opt-btn dev-tp-opt" data-depth="3000" type="button">الظلام 3كم</button>
+            <button class="dev-opt-btn dev-tp-opt" data-depth="11000" type="button">الخندق 11كم</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

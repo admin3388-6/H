@@ -70,6 +70,33 @@
   }
 
   // =========================================================================
+  // 1.5 QUALITY PRESETS — مستويات جودة: عادية / عالية / قصوى (تُطبَّق حياً)
+  // =========================================================================
+  const QUALITY_PRESETS = {
+    normal: { stars: 22, snow: 14, rainDrops: 42, flakes: 30, subRays: 80, diverRays: 48, fauna: 24, subMotes: 20, diverMotes: 16, surfaceSparkle: false },
+    high:   { stars: 45, snow: 28, rainDrops: 70, flakes: 50, subRays: 120, diverRays: 72, fauna: 34, subMotes: 32, diverMotes: 24, surfaceSparkle: true },
+    max:    { stars: 70, snow: 42, rainDrops: 100, flakes: 70, subRays: 160, diverRays: 96, fauna: 44, subMotes: 44, diverMotes: 32, surfaceSparkle: true }
+  };
+  const Quality = {
+    level: 'high',
+    q: QUALITY_PRESETS.high,
+    load() {
+      try {
+        const v = localStorage.getItem('marine_quality');
+        if (v && QUALITY_PRESETS[v]) this.level = v;
+      } catch (_) {}
+      this.q = QUALITY_PRESETS[this.level];
+    },
+    set(level) {
+      if (!QUALITY_PRESETS[level]) return;
+      this.level = level;
+      this.q = QUALITY_PRESETS[level];
+      try { localStorage.setItem('marine_quality', level); } catch (_) {}
+    }
+  };
+  Quality.load();
+
+  // =========================================================================
   // 2. VIRTUAL JOYSTICK 360° & INPUT ENGINE
   // =========================================================================
   class VirtualJoystick {
@@ -613,6 +640,11 @@
       this.bubbleTimer = 0;
       this.bubbles = new ObjectPool(() => ({ x: 0, y: 0, vy: 0, r: 0, a: 0 }), 48);
 
+      // متغيرات وضع المطور
+      this.speedMultiplier = 1.0;
+      this.jumpMultiplier = 1.0;
+      this.godMode = false;
+
       // محاكاة نظام الكشاف المتقدم المطابق للغواصة
       this.lightData = null;
       this._geomKey = null;
@@ -626,7 +658,7 @@
 
       // عوالق مائية مضيئة خاصة بكشاف الغواص
       this.motes = [];
-      for (let i = 0; i < 24; i++) {
+      for (let i = 0; i < Quality.q.diverMotes; i++) {
         this.motes.push({
           x: this.x + (Math.random() - 0.5) * 450,
           y: this.y + (Math.random() - 0.5) * 450,
@@ -765,11 +797,11 @@
         }
       }
       const conePad = range + 25;
-      const geomKey = Math.round(worldEmitX) + '|' + Math.round(worldEmitY) + '|' + Math.round(safeAngle * 512);
+      const geomKey = Math.round(worldEmitX) + '|' + Math.round(worldEmitY) + '|' + Math.round(safeAngle * 512) + '|' + Quality.q.diverRays;
 
       if (geomKey !== this._geomKey) {
         this._geomKey = geomKey;
-        const rays = 72;
+        const rays = Quality.q.diverRays;
         const step = 5;
         const hitPoints = [];
         let centerHitX = 0, centerHitY = 0;
@@ -974,6 +1006,13 @@
       ctx.restore();
     }
     update(dt, joystick, submarine, jumpRequested) {
+      // دعم وضع الخلود للمطور
+      if (this.godMode) {
+        this.health = 100;
+        this.oxygen = 100;
+        this.isDead = false;
+      }
+
       // علاج صحة اللاعب وتعبئة الأكسجين بسرعة داخل الغواصة
       if (this.inSubmarine) {
         if (this.health < 100) this.health = Math.min(100, this.health + 8 * dt);
@@ -1034,8 +1073,8 @@
       const inWater = (!onLand && this.y > WORLD.WATER_Y + 6);
       const depthM = inWater ? (this.y - WORLD.WATER_Y) / WORLD.PIXELS_PER_METER : 0;
 
-      // سحق فوري وموت وسقوط الكشاف عند عمق 500م أو نفاد الأكسجين
-      if (inWater && depthM >= 500) {
+      // سحق فوري وموت وسقوط الكشاف عند عمق 500م أو نفاد الأكسجين (مع استثناء وضع الخلود)
+      if (inWater && depthM >= 500 && !this.godMode) {
         this.isDead = true;
         this.health = 0;
         this.lightOn = false;
@@ -1053,15 +1092,17 @@
 
       // استهلاك الأكسجين عند الغوص (يكفي ~35 ثانية) والتعبئة عند السطح
       if (inWater) {
-        this.oxygen = Math.max(0, this.oxygen - 2.8 * dt);
-        if (this.oxygen <= 0 || depthM > 100) {
-          this.health = Math.max(0, this.health - (depthM > 100 ? 18 : 10) * dt);
-          if (this.health <= 0) {
-            this.isDead = true;
-            for (let i = 0; i < 10; i++) {
-              this.bloodBurst.push({ x: this.x, y: this.y, vx: (Math.random() - 0.5) * 15, vy: -8, r: 3, a: 0.8 });
+        if (!this.godMode) {
+          this.oxygen = Math.max(0, this.oxygen - 2.8 * dt);
+          if (this.oxygen <= 0 || depthM > 100) {
+            this.health = Math.max(0, this.health - (depthM > 100 ? 18 : 10) * dt);
+            if (this.health <= 0) {
+              this.isDead = true;
+              for (let i = 0; i < 10; i++) {
+                this.bloodBurst.push({ x: this.x, y: this.y, vx: (Math.random() - 0.5) * 15, vy: -8, r: 3, a: 0.8 });
+              }
+              return;
             }
-            return;
           }
         }
       } else {
@@ -1088,7 +1129,7 @@
           }
         }
 
-        const swimSpeed = 95;
+        const swimSpeed = 95 * (this.speedMultiplier || 1.0);
         if (joystick.force > 0.08) {
           const targetAngle = Math.atan2(joystick.dirY, joystick.dirX);
           const diff = Math.atan2(Math.sin(targetAngle - this.swimAngle), Math.cos(targetAngle - this.swimAngle));
@@ -1178,7 +1219,7 @@
           this.swimAngle = 0;
         }
 
-        const walkSpeed = 130;
+        const walkSpeed = 130 * (this.speedMultiplier || 1.0);
         const targetVx = (joystick.force > 0.12) ? joystick.dirX * joystick.force * walkSpeed : 0;
         this.vx += (targetVx - this.vx) * (1 - Math.exp(-14 * dt));
 
@@ -1189,9 +1230,9 @@
           this.animTime = 0;
         }
 
-        // القفز أثناء المشي أو فوق المنحدر الخشبي
+        // القفز أثناء المشي أو فوق المنحدر الخشبي مع دعم مضاعف القفز
         if (this.isGrounded && jumpRequested) {
-          this.vy = -275;
+          this.vy = -275 * (this.jumpMultiplier || 1.0);
           this.isGrounded = false;
         }
 
@@ -1631,7 +1672,7 @@
       this.propellerSpeed = 0;
       this.bubbleTrail = new ObjectPool(() => ({ x: 0, y: 0, alpha: 0, r: 0 }), 96);
       this.motes = [];
-      for (let i = 0; i < 32; i++) {
+      for (let i = 0; i < Quality.q.subMotes; i++) {
         this.motes.push({
           x: this.x + (Math.random() - 0.5) * 850,
           y: this.y + (Math.random() - 0.5) * 850,
@@ -1953,10 +1994,10 @@
       }
       const conePad = range + 30;
 
-      const geomKey = Math.round(worldEmitX) + '|' + Math.round(worldEmitY) + '|' + Math.round(safeAngle * 512);
+      const geomKey = Math.round(worldEmitX) + '|' + Math.round(worldEmitY) + '|' + Math.round(safeAngle * 512) + '|' + Quality.q.subRays;
       if (geomKey !== this._geomKey) {
         this._geomKey = geomKey;
-        const rays = 120;
+        const rays = Quality.q.subRays;
         const step = 5;
         const hitPoints = [];
         let centerHitX = 0, centerHitY = 0;
@@ -2079,7 +2120,6 @@
       }
 
       // زمن الإطار لتنعيم الانعكاس (يُحسب مرة واحدة في أول رسم بالإطار)
-      const nowT = performance.now();
   // انعكاس سطحي حقيقي يسقط على الصخور بحرية دون اقتصاص
   const dtB = this._lastBT ? Math.min(0.05, (performance.now() - this._lastBT) / 1000) : 0.016;
   this._lastBT = performance.now();
@@ -2981,6 +3021,7 @@
 
       // جدول بحث سطح الصخور (Lookup كل 4px) — يستبدل فحص 13 مضلعاً لكل استعلام
       this.buildRockSurfaceTable();
+      this.buildCrackPaths();
     }
 
     getHeightAt(x) {
@@ -3053,6 +3094,33 @@
         }
       }
       return highestY !== Infinity ? highestY : null;
+    }
+
+    // بناء الشقوق البازلتية وعروق الماغما مرة واحدة كمسارات ثابتة — يقتل حسابات الجيوب والمسارات كل إطار
+    buildCrackPaths() {
+      const pts = this.points;
+      const basalt = new Path2D();
+      const magma = new Path2D();
+      for (let i = 8; i < pts.length - 8; i += 7) {
+        const p = pts[i];
+        const seed = Math.sin(p.y * 0.13 + p.x * 0.07) * 10000;
+        const rnd = seed - Math.floor(seed);
+        if (rnd > 0.42) continue;
+        const len1 = 30 + rnd * 50;
+        const len2 = 25 + (1 - rnd) * 45;
+        const dy1 = (rnd - 0.5) * 35;
+        const dy2 = (0.5 - rnd) * 30;
+        const depthOffset = 40 + rnd * 60;
+        if (p.y > 30400 && p.y <= 45400) {
+          basalt.moveTo(p.x + depthOffset, p.y);
+          basalt.lineTo(p.x + depthOffset + len1, p.y + dy1);
+          if (rnd < 0.25) basalt.lineTo(p.x + depthOffset + len1 + len2, p.y + dy1 + dy2);
+        } else if (p.y > 45400) {
+          magma.moveTo(p.x + depthOffset, p.y + 16);
+          magma.lineTo(p.x + depthOffset + len1, p.y + dy1 + 22);
+        }
+      }
+      this.crackPaths = { basalt, magma };
     }
 
     getWallX(y) {
@@ -3654,9 +3722,9 @@
   class MarineFaunaSystem {
     constructor(terrain) {
       this.terrain = terrain;
-      this.poolSize = 34; // توسيع السعة لتغطية الأعماق الكبيرة
+      this.poolSize = Quality.q.fauna; // السعة تتبع إعداد الجودة وتُحدَّث حياً
       this.creatures = [];
-      for (let i = 0; i < 34; i++) {
+      for (let i = 0; i < 70; i++) {
         this.creatures.push(new MarineCreature());
       }
       this.bloodPuffs = [];
@@ -3959,7 +4027,7 @@
       // عوالق مائية خفيفة ومعدودة مع دورة حياة محددة
       this.particles = [];
       const rng = new DeterministicRNG(998877);
-      for (let i = 0; i < 28; i++) {
+      for (let i = 0; i < 42; i++) {
         const life = rng.range(3.5, 7.0);
         this.particles.push({
           x: rng.range(WORLD.WALL_X, WORLD.SHORE_X),
@@ -4329,6 +4397,12 @@
         }
       } catch (_) {}
 
+      // استرجاع جودة الرسومات المحفوظة لمحدد اللوبي
+      try {
+        const qSelEl = document.getElementById('lobby-quality');
+        if (qSelEl) qSelEl.value = Quality.level;
+      } catch (_) {}
+
       // جلب ملفات الصوت مسبقاً أثناء عرض الـLobby (fetch فقط — فك الترميز بعد اللمسة)
       this.prefetchedBuffers = {};
       const preList = [
@@ -4636,9 +4710,23 @@
 
     // بدء اللعبة بعد اكتمال كل الموارد (يُعلَّم أن المقدمة شوهدت)
     startGame() {
+      if (this._gameStarted) return;
+      this._gameStarted = true;
       this.markIntroCompleted();
       if (this.flowEl) this.flowEl.classList.add('finished');
       if (this.onComplete) this.onComplete(this.preloadedAudio, this.audioCtx);
+    }
+
+    // تجاوز فوري وتخطي سريع مباشر للمطور
+    fastSkipDirectly() {
+      GameLogger.log('DEV', 'INFO', 'Fast Skip Triggered');
+      this.unlockAudioOnGesture();
+      this.markIntroCompleted();
+      if (this.comicEl) this.comicEl.classList.add('hidden');
+      if (this.loadEl) this.loadEl.classList.add('hidden');
+      if (this.startEl) this.startEl.classList.add('hidden');
+      if (this.prestartEl) this.prestartEl.classList.add('hidden');
+      this.startGame();
     }
 
     // عرض المقدمة الكوميكية المدمجة (أول زيارة) ثم تلاشيها نحو الـLobby
@@ -5157,199 +5245,10 @@
     release(o) { o.active = false; }
   }
 
-  // =========================================================================
-  // 6.9 WORLD STREAMING (Chunks: تحميل تنبؤي حسب الاتجاه + كاش دائم + LRU)
-  // =========================================================================
-  class Chunk {
-    constructor(cx, cy) {
-      this.cx = cx; this.cy = cy;
-      // UNLOADED → READY: يُبنى مرة واحدة فقط ولا يُعاد توليده ما دام محفوظاً
-      this.state = 'UNLOADED';
-      this.crackPaths = null;   // شقوق/ماغما ثابتة مُجمّدة كـPath2D
-      this.vents = null;        // فوهات حرارية (Hadal) مع مساراتها
-      this.lastUsed = 0;
-    }
-    get x0() { return this.cx * WORLD.CHUNK; }
-    get y0() { return this.cy * WORLD.CHUNK; }
-  }
-
-  class ChunkManager {
-    constructor(terrain) {
-      this.terrain = terrain;
-      this.chunks = new Map();
-      this.queue = [];
-      this.time = 0;
-      this.tick = 0;
-      // حد الكاش يتكيف مع RAM الجهاز — إزالة LRU عند الضغط فقط
-      const mem = (typeof navigator !== 'undefined' && navigator.deviceMemory) || 4;
-      this.maxCached = mem >= 6 ? 72 : (mem >= 4 ? 44 : 20);
-    }
-
-    key(cx, cy) { return cx * 100000 + cy; }
-    ensure(cx, cy) {
-      const k = this.key(cx, cy);
-      let c = this.chunks.get(k);
-      if (!c) { c = new Chunk(cx, cy); this.chunks.set(k, c); }
-      return c;
-    }
-
-    request(cx, cy, priority) {
-      const c = this.ensure(cx, cy);
-      c.lastUsed = this.time;
-      if (c.state === 'READY') return;
-      for (let i = 0; i < this.queue.length; i++) {
-        if (this.queue[i].c === c) { if (this.queue[i].p > priority) this.queue[i].p = priority; return; }
-      }
-      this.queue.push({ c, p: priority });
-    }
-
-    update(px, py, vx, vy, view, dt) {
-      this.time += dt;
-      this.tick++;
-      if (!view) view = { x0: px - 900, y0: py - 600, x1: px + 900, y1: py + 600 };
-      const C = WORLD.CHUNK;
-
-      // 1) نافذة الرؤية ممتدة بهامش أمان — أي Chunk قد يظهر قريباً يُطلب مسبقاً
-      const cx0 = Math.floor(view.x0 / C) - 1, cx1 = Math.floor(view.x1 / C) + 1;
-      const cy0 = Math.floor(view.y0 / C) - 1, cy1 = Math.floor(view.y1 / C) + 1;
-      // 2) تنبؤ بالاتجاه: امتداد أمام مسار اللاعب يتسع مع السرعة
-      const spd = Math.hypot(vx, vy);
-      const ahead = 1 + Math.min(4, Math.floor(spd / 90));
-      const dx = vx > 25 ? 1 : (vx < -25 ? -1 : 0);
-      const dy = vy > 25 ? 1 : (vy < -25 ? -1 : 0);
-      const pcx = Math.floor(px / C), pcy = Math.floor(py / C);
-
-      const wanted = new Set();
-      for (let cy = cy0; cy <= cy1; cy++) {
-        for (let cx = cx0; cx <= cx1; cx++) {
-          wanted.add(this.key(cx, cy));
-          this.request(cx, cy, 10 + Math.abs(cx - pcx) + Math.abs(cy - pcy));
-        }
-      }
-      for (let s = 1; s <= ahead; s++) {
-        const nx = pcx + dx * s, ny = pcy + dy * s;
-        if (dx !== 0) { wanted.add(this.key(nx, pcy)); this.request(nx, pcy, s); }
-        if (dy !== 0) { wanted.add(this.key(pcx, ny)); this.request(pcx, ny, s); }
-        if (dx !== 0 && dy !== 0) { wanted.add(this.key(nx, ny)); this.request(nx, ny, s + 1); }
-      }
-      this.wanted = wanted;
-
-      // 3) ميزانية زمنية دقيقة (≤ 1.5ms) لمنع أي هبوط في الإطارات على الهواتف
-      if (this.queue.length > 0) {
-        this.queue.sort((a, b) => a.p - b.p);
-        const t0 = performance.now();
-        while (this.queue.length > 0 && (performance.now() - t0) < 1.5) {
-          const job = this.queue.shift();
-          if (job.c.state !== 'READY') {
-            this.buildChunk(job.c);
-            job.c.state = 'READY';
-          }
-        }
-      }
-
-      // 4) LRU: عند تجاوز حد الكاش تُزال أقدم Chunks غير مطلوبة (تُبنى من جديد فقط عند العودة)
-      if (this.chunks.size > this.maxCached && (this.tick % 45) === 0) {
-        const evictable = [];
-        this.chunks.forEach((c, k) => { if (!wanted.has(k)) evictable.push(c); });
-        evictable.sort((a, b) => a.lastUsed - b.lastUsed);
-        let excess = this.chunks.size - this.maxCached;
-        for (let i = 0; i < evictable.length && excess-- > 0; i++) {
-          this.chunks.delete(this.key(evictable[i].cx, evictable[i].cy));
-        }
-        this.queue = this.queue.filter((j) => this.chunks.get(this.key(j.c.cx, j.c.cy)) === j.c);
-      }
-    }
-
-    buildChunk(c) {
-      const built = this.buildStaticDecor(c.x0, c.y0, c.x0 + WORLD.CHUNK, c.y0 + WORLD.CHUNK);
-      c.crackPaths = built.cracks;
-      c.vents = built.vents;
-    }
-
-    // زخارف ثابتة تُحسب مرة واحدة: بازلت (100م–5.6كم)، ماغما (7كم+)، فوهات Hadal
-    buildStaticDecor(x0, y0, x1, y1) {
-      const result = { cracks: null, vents: null };
-      if (y1 < 1000) return result;
-      const basalt = new Path2D();
-      const magma = new Path2D();
-      const vents = [];
-      let hasBasalt = false, hasMagma = false;
-      const pts = this.terrain.points;
-      for (let i = 8; i < pts.length - 8; i += 7) {
-        const p = pts[i];
-        if (p.x < x0 || p.x > x1 || p.y < y0 - 80 || p.y > y1 + 80) continue;
-        const seed = Math.sin(p.y * 0.13 + p.x * 0.07) * 10000;
-        const rnd = seed - Math.floor(seed);
-        if (rnd > 0.42) continue;
-        const len1 = 30 + rnd * 50;
-        const len2 = 25 + (1 - rnd) * 45;
-        const dy1 = (rnd - 0.5) * 35;
-        const dy2 = (0.5 - rnd) * 30;
-        const depthOffset = 40 + rnd * 60;
-        if (p.y > 30400 && p.y <= 45400) {
-          hasBasalt = true;
-          basalt.moveTo(p.x + depthOffset, p.y);
-          basalt.lineTo(p.x + depthOffset + len1, p.y + dy1);
-          if (rnd < 0.25) basalt.lineTo(p.x + depthOffset + len1 + len2, p.y + dy1 + dy2);
-        } else if (p.y > 45400) {
-          hasMagma = true;
-          magma.moveTo(p.x + depthOffset, p.y + 16);
-          magma.lineTo(p.x + depthOffset + len1, p.y + dy1 + 22);
-        }
-      }
-      // فوهات حرارية في Hadal (أعمق من ~6 كم): مواقع حتمية لكل Chunk
-      if (y1 > 36400) {
-        const rng = new DeterministicRNG((Math.floor(x0 / WORLD.CHUNK) * 73856093 ^ Math.floor(y0 / WORLD.CHUNK) * 19349663) >>> 0);
-        for (let vx = x0 + 60; vx < x1 - 60; vx += 120) {
-          if (rng.next() < 0.45) continue;
-          const vy = this.terrain.getHeightAt(vx);
-          if (vy < y0 - 60 || vy > y1 + 160) continue;
-          const vp = new Path2D();
-          vp.moveTo(vx - 26, vy + 4);
-          vp.quadraticCurveTo(vx - 8, vy - 30, vx, vy - 34);
-          vp.quadraticCurveTo(vx + 8, vy - 30, vx + 26, vy + 4);
-          vp.closePath();
-          vents.push({ x: vx, y: vy - 34, path: vp, glow: null });
-        }
-      }
-      if (hasBasalt || hasMagma) result.cracks = { basalt: hasBasalt ? basalt : null, magma: hasMagma ? magma : null };
-      if (vents.length > 0) result.vents = vents;
-      return result;
-    }
-
-    forChunksInView(view, fn) {
-      const C = WORLD.CHUNK;
-      const cx0 = Math.floor(view.x0 / C), cx1 = Math.floor(view.x1 / C);
-      const cy0 = Math.floor(view.y0 / C), cy1 = Math.floor(view.y1 / C);
-      for (let cy = cy0; cy <= cy1; cy++) {
-        for (let cx = cx0; cx <= cx1; cx++) {
-          const c = this.chunks.get(this.key(cx, cy));
-          if (c && c.state === 'READY') fn(c);
-        }
-      }
-    }
-
-    // فوهات الـChunks النشطة (3×3 حول اللاعب) فقط — لتوليد الدخان المقتصد
-    nearVents(px, py) {
-      const C = WORLD.CHUNK;
-      const pcx = Math.floor(px / C), pcy = Math.floor(py / C);
-      const out = [];
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          const c = this.chunks.get(this.key(pcx + dx, pcy + dy));
-          if (c && c.vents) {
-            for (const v of c.vents) {
-              if (Math.abs(v.x - px) < 1500 && Math.abs(v.y - py) < 1500) out.push(v);
-            }
-          }
-        }
-      }
-      return out;
-    }
-  }
-
+  // تم حذف نظام الـChunks نهائياً — كان غير مفعّل لا يُنشأ في أي مكان؛ الزخارف الثابتة تُبنى مرة واحدة داخل TerrainSystem
   class Renderer {
     constructor(canvas, ctx, camera, terrain, ecology, optics) {
+
       this.canvas = canvas;
       this.ctx = ctx;
       this.camera = camera;
@@ -5358,7 +5257,7 @@
       this.optics = optics;
       this.stars = [];
       const sRng = new DeterministicRNG(445566);
-      for (let i = 0; i < 45; i++) {
+      for (let i = 0; i < 70; i++) {
         this.stars.push({
           x: sRng.range(100, WORLD.WIDTH - 100),
           y: sRng.range(-280, WORLD.WATER_Y - 30),
@@ -5375,7 +5274,12 @@
       const ch = this.canvas.height / (window.devicePixelRatio > 2.0 ? 2.0 : window.devicePixelRatio || 1);
 
       // تحديث مسار قناع الماء الحركي وتدوير العوالق بنطاق الكاميرا
-      this.waterPath = this.buildWaterPath();
+      // بناء مسار الماء مرة كل 30 إطاراً بدل كل إطار (حلقة ~3400 نقطة) — المسار مرجعي ولا يُقص به حالياً
+      this._waterPathTick = (this._waterPathTick || 0) - 1;
+      if (!this.waterPath || this._waterPathTick <= 0) {
+        this.waterPath = this.buildWaterPath();
+        this._waterPathTick = 30;
+      }
       this.optics.recycleParticlesAround(cam.x, cam.y, cw / cam.zoom, ch / cam.zoom);
 
       const ctx = this.ctx;
@@ -5483,7 +5387,9 @@
       if (dn && dn.starAlpha > 0.02) {
         ctx.save();
         const t = this.optics ? this.optics.time : 0;
-        for (const s of this.stars) {
+        const starCount = Math.min(this.stars.length, Quality.q.stars);
+        for (let si = 0; si < starCount; si++) {
+          const s = this.stars[si];
           const tw = 0.75 + Math.sin(t * s.spd + s.p) * 0.25;
           ctx.fillStyle = `rgba(255, 255, 255, ${(dn.starAlpha * tw).toFixed(3)})`;
           ctx.beginPath();
@@ -5525,7 +5431,7 @@
         ctx.strokeStyle = 'rgba(175, 200, 228, 0.38)';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        for (let i = 0; i < 70; i++) {
+        for (let i = 0; i < Quality.q.rainDrops; i++) {
           const rx = cam.x - halfW + ((i * 137.5) % (halfW * 2));
           const speed = 520 + (i % 5) * 60;
           const ry = ((t * speed + i * 197) % 460) + WORLD.WATER_Y - 80;
@@ -5536,7 +5442,7 @@
         ctx.stroke();
       } else {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < Quality.q.flakes; i++) {
           const rx = cam.x - halfW + ((i * 173) % (halfW * 2));
           const speed = 40 + (i % 4) * 14;
           const ry = ((t * speed + i * 211) % 400) + WORLD.WATER_Y - 70;
@@ -5549,9 +5455,7 @@
       ctx.restore();
     }
 
-    drawFarBackground(ctx) {
-      // تم استبداله: إزالة سلاسل التلال البعيدة لمنع الإيحاء بـ 2.5D والحفاظ على مقطع 2D نقي
-    }
+    // خلفية التلال البعيدة أُلغيت — المشهد مقطع 2D نقي
 
     drawMainTerrain(ctx) {
       const pts = this.terrain.points;
@@ -5599,44 +5503,14 @@
       }
       ctx.stroke();
 
-      // عروق ماغما متوهجة متداخلة طبيعياً وأحواض حمم منصهرة لزجة تسيل ببطء في قاع تشالنجر ديب
-      const tTime = this.optics.time;
-
-      // شقوق جيولوجية وعروق ماغما متداخلة عميقاً داخل باطن الأرض وليس على الحواف
-      // تم استبداله: إزالة الإعلان المكرر للمتغير tTime لمنع SyntaxError
-
-      // شقوق جيولوجية عشوائية تماماً ومتباعدة غير متكررة داخل باطن الكتلة الصخرية
-      for (let i = 8; i < pts.length - 8; i += 7) {
-        const p = pts[i];
-        // مولد عشوائي حتمي قائم على الموقع يمنع التكرار نهائياً
-        const seed = Math.sin(p.y * 0.13 + p.x * 0.07) * 10000;
-        const rnd = seed - Math.floor(seed);
-        if (rnd > 0.42) continue; // مساحات صخرية مصمتة وطبيعية بدون شقوق
-
-        const len1 = 30 + rnd * 50;
-        const len2 = 25 + (1 - rnd) * 45;
-        const dy1 = (rnd - 0.5) * 35;
-        const dy2 = (0.5 - rnd) * 30;
-        const depthOffset = 40 + rnd * 60; // داخل باطن الصخر
-
-        if (p.y > 30400 && p.y <= 45400) {
-          // تصدعات بازلتية سوداء غير منتظمة في باطن الصخور (5-7 كم)
-          ctx.strokeStyle = 'rgba(0, 0, 0, 0.65)';
-          ctx.lineWidth = 1.8 + rnd * 1.2;
-          ctx.beginPath();
-          ctx.moveTo(p.x + depthOffset, p.y);
-          ctx.lineTo(p.x + depthOffset + len1, p.y + dy1);
-          if (rnd < 0.25) ctx.lineTo(p.x + depthOffset + len1 + len2, p.y + dy1 + dy2);
-          ctx.stroke();
-        } else if (p.y > 45400) {
-          // عروق ماغما متوهجة داخل باطن صخور خندق تشالنجر ديب وقاعه
-          ctx.strokeStyle = (p.y > 21800) ? 'rgba(235, 60, 20, 0.72)' : 'rgba(165, 30, 15, 0.45)';
-          ctx.lineWidth = (p.y > 21800) ? 2.6 : 1.8;
-          ctx.beginPath();
-          ctx.moveTo(p.x + depthOffset, p.y + (p.y > 21800 ? 16 : 0));
-          ctx.lineTo(p.x + depthOffset + len1, p.y + dy1 + (p.y > 21800 ? 22 : 0));
-          ctx.stroke();
-        }
+      // شقوق وعروق ماغما ثابتة تُرسم من مسارات مبنية مرة واحدة — نفس الشكل بلا حسابات كل إطار
+      if (this.terrain.crackPaths) {
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.65)';
+        ctx.lineWidth = 2.2;
+        ctx.stroke(this.terrain.crackPaths.basalt);
+        ctx.strokeStyle = 'rgba(235, 60, 20, 0.72)';
+        ctx.lineWidth = 2.6;
+        ctx.stroke(this.terrain.crackPaths.magma);
       }
       ctx.restore();
     }
@@ -5692,8 +5566,12 @@
     drawOrganisms(ctx) {
       const orgs = this.ecology.organisms;
       const t = this.optics.time;
+      const cam = this.camera;
+      const dprN = window.devicePixelRatio > 2.0 ? 2.0 : window.devicePixelRatio || 1;
+      const orgHalfW = ((this.canvas.width / dprN) / cam.zoom) * 0.5 + 100;
 
       for (const org of orgs) {
+        if (Math.abs(org.x - cam.x) > orgHalfW) continue;
         if (org.type === 'seagrass') {
           const sway = Math.sin(t * org.speed + org.phase) * 10;
           ctx.save();
@@ -5789,9 +5667,7 @@
       ctx.restore();
     }
 
-    drawLightEffects(ctx) {
-      // تم استبداله: حذف الشرائط والأشعة الصفراء المتحركة لتنقية مظهر الماء وتفادي التشوهات البصرية
-    }
+    // تأثيرات الضوء القديمة أُلغيت — الإضاءة الحالية عبر Light Map فقط
 
     drawWaterSurface(ctx) {
       ctx.save();
@@ -5805,12 +5681,27 @@
         ctx.lineTo(x, this.optics.getWaterHeightAt(x));
       }
 
-      // خط لمعان سطح البحر
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
-      ctx.lineWidth = 2.5;
+      // خط لمعان سطح البحر متعدد الطبقات: توهج ناعم عريض + نواة ساطعة
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+      ctx.lineWidth = 6.5;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.68)';
+      ctx.lineWidth = 2.2;
       ctx.stroke();
 
-      // تم استبداله: حذف الشكل البيضاوي المشوه للشاطئ
+      // بريق سطحي متحرك خفيف — يظهر على جودتي high وmax فقط
+      if (Quality.q.surfaceSparkle) {
+        const t = this.optics.time;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        for (let i = 0; i < 14; i++) {
+          const sx = startX + ((i * 977) % (endX - startX));
+          ctx.globalAlpha = 0.28 * (0.4 + 0.6 * Math.abs(Math.sin(t * 1.6 + i * 1.7)));
+          ctx.beginPath();
+          ctx.arc(sx, this.optics.getWaterHeightAt(sx) - 1.5, 1.1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
       ctx.restore();
     }
 
@@ -5820,7 +5711,9 @@
       const halfW = (this.canvas.width / (cam.zoom * 2)) * 1.08;
       const halfH = (this.canvas.height / (cam.zoom * 2)) * 1.08;
 
-      for (const p of this.optics.particles) {
+      const snowCount = Math.min(this.optics.particles.length, Quality.q.snow);
+      for (let pi = 0; pi < snowCount; pi++) {
+        const p = this.optics.particles[pi];
         if (Math.abs(p.x - cam.x) > halfW || Math.abs(p.y - cam.y) > halfH) continue;
         // حظر رسم العوالق خارج الماء نهائياً (ممنوع في السماء أو على اليابسة)
         if (p.x >= WORLD.SHORE_X - 10) continue;
@@ -5940,10 +5833,7 @@
       this.renderer.submarine = this.submarine;
 
       this.btnAction = document.getElementById('btn-action');
-      this.actionText = document.getElementById('action-text');
-      this.actionIcon = document.getElementById('action-icon');
-      this.btnHeadlight = document.getElementById('btn-headlight');
-      this.btnDiverLight = document.getElementById('btn-diver-light');
+      // عناصر واجهة قديمة غير موجودة — التفاعل والضوء من زر واحد موحد
       this.btnJump = document.getElementById('btn-jump');
 
       // عناصر الواجهة
@@ -5976,7 +5866,7 @@
         initDist: 0,
         initZoom: 1.0
       };
-      this.cachedMapPts = null;
+      // كاش نقاط الخريطة غير مستخدم — الرادار يرسم إطاراً سلكياً مباشرة
 
       this.lastTime = 0;
       this.running = false;
@@ -6043,28 +5933,9 @@
 
     initUI() {
       // زر تجربة صوت الحوت (تشغيل فوري بتجاوز المؤقت — للاختبار)
-      const btnWhaleTest = document.getElementById('btn-whale-test');
-      if (btnWhaleTest) {
-        btnWhaleTest.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.whaleAudio.testCall();
-        });
-      }
+      // زر تجربة صوت الحوت غير موجود في الواجهة — testCall يبقى متاحاً للاستخدام المستقبلي
 
-      const btnSpeed = document.getElementById('btn-speed');
-      const speedLabel = document.getElementById('speed-label');
-      const speeds = [1, 2, 4, 8, 16, 32, 64, 128];
-      let speedIdx = 0;
-
-      if (btnSpeed && speedLabel) {
-        btnSpeed.addEventListener('click', (e) => {
-          e.stopPropagation();
-          speedIdx = (speedIdx + 1) % speeds.length;
-          const currentSpeed = speeds[speedIdx];
-          this.input.speedMultiplier = currentSpeed;
-          speedLabel.textContent = `x${currentSpeed}`;
-        });
-      }
+      // زر تسريع الوقت غير موجود في الواجهة الحالية — أُلغي معالجه
 
       // أزرار وخريطة الرادار التفاعلية
       const btnMapToggle = document.getElementById('btn-map-toggle');
@@ -6263,7 +6134,8 @@
     update(dt) {
       // إخفاء العتلة والبانر بشكل قاطع إذا لم يكن اللاعب داخل الغواصة
       const inSub = !!(this.submarine && this.submarine.occupied);
-      const subPanel = document.getElementById('sub-throttle');
+      if (!this._subPanelEl) this._subPanelEl = document.getElementById('sub-throttle');
+      const subPanel = this._subPanelEl;
       if (subPanel) subPanel.classList.toggle('hidden', !inSub);
       if (!inSub && this.subWarnBanner) {
         this.subWarnBanner.textContent = '';
@@ -6295,14 +6167,7 @@
 
       // تم استبداله: التحقق المكرر من عتلة السرعة
 
-      if (this.btnHeadlight) {
-        this.btnHeadlight.classList.toggle('hidden', !this.submarine.occupied);
-      }
-
-      if (this.btnDiverLight) {
-        // إخفاء كشاف الغواص تماماً عند ركوب الغواصة وإظهاره عند الخروج
-        this.btnDiverLight.classList.toggle('hidden', this.submarine.occupied);
-      }
+      // أزرار كشاف منفصلة غير موجودة في الواجهة — الضوء يُدار من زر موحد (btn-light-toggle)
 
       // إخفاء أزرار التحكم غير المتوافقة مع حالة الركوب
       if (this.btnJump) {
@@ -6312,7 +6177,8 @@
 
       // ضبط ظهور زر التفاعل بدقة: يختفي كلياً إذا كان بعيداً
       if (this.btnAction) {
-        const wrap = document.getElementById('action-icon-wrap');
+        if (!this._actionWrapEl) this._actionWrapEl = document.getElementById('action-icon-wrap');
+        const wrap = this._actionWrapEl;
         if (inSub) {
           this.btnAction.classList.remove('hidden');
           this.btnAction.classList.add('compact-exit');
@@ -6334,7 +6200,8 @@
       this.input.update(dt);
 
       // خمول عصا التحكم: تتلاشى تدريجيًا بعد 5 ثوانٍ دون لمس وتعود عند أول لمسة
-      const jZone = document.getElementById('joystick-zone');
+      if (!this._joyZoneEl) this._joyZoneEl = document.getElementById('joystick-zone');
+      const jZone = this._joyZoneEl;
       if (jZone) {
         const jState = this.input.joystick;
         if (jState && (jState.active || jState.force > 0.05)) {
@@ -6367,6 +6234,9 @@
       }
     }
 
+    _hudText(el, val) { if (el && el.__v !== val) { el.__v = val; el.textContent = val; } }
+    _hudWidth(el, val) { if (el && el.__w !== val) { el.__w = val; el.style.width = val; } }
+
     updateHUD() {
       const active = this.submarine.occupied ? this.submarine : this.fisherman;
       const camX = active ? active.x : this.camera.x;
@@ -6377,11 +6247,11 @@
 
       if (this.depthGauge) {
         if (depthMeters <= 0) {
-          this.depthGauge.textContent = 'السطح (0.0 م)';
+          this._hudText(this.depthGauge, 'السطح (0.0 م)');
         } else if (depthMeters >= 1000) {
-          this.depthGauge.textContent = `${(depthMeters / 1000).toFixed(2)} كم (${Math.round(depthMeters)} م)`;
+          this._hudText(this.depthGauge, `${(depthMeters / 1000).toFixed(2)} كم (${Math.round(depthMeters)} م)`);
         } else {
-          this.depthGauge.textContent = `${depthMeters.toFixed(1)} م`;
+          this._hudText(this.depthGauge, `${depthMeters.toFixed(1)} م`);
         }
       }
 
@@ -6404,7 +6274,7 @@
         } else if (depthMeters >= 9000.0) {
           zone = 'خندق ماريانا تشالنجر ديب (Challenger Deep)';
         }
-        this.zoneGauge.textContent = zone;
+        this._hudText(this.zoneGauge, zone);
       }
 
       const inSub = this.submarine && this.submarine.occupied;
@@ -6412,7 +6282,7 @@
       const dM = Math.round(Math.max(0, (act.y - WORLD.WATER_Y) / WORLD.PIXELS_PER_METER));
 
       // 1. تحديث شريط البيئة والوقت
-      if (this.timeGauge && this.dayNight) this.timeGauge.textContent = this.dayNight.getTimeString();
+      if (this.timeGauge && this.dayNight) this._hudText(this.timeGauge, this.dayNight.getTimeString());
 
       // أيقونة الطقس حسب الجو والليل
       if (this.dayNight) {
@@ -6437,10 +6307,10 @@
           let temp = w === 'sun' ? 24 : (w === 'cloud' ? 17 : (w === 'storm' ? 13 : -2));
           if (isNight) temp -= 6;
           if (dM > 0) temp = Math.round(Math.max(2, temp - dM * 0.35));
-          tempEl.textContent = `${temp}°`;
+          this._hudText(tempEl, `${temp}°`);
         }
       }
-      if (this.depthGauge) this.depthGauge.textContent = `- ${dM} m`;
+      this._hudText(this.depthGauge, `- ${dM} m`);
 
       // 2. تبديل صورة الأفاتار الدائري من مجلد voices/
       const avatarImg = document.getElementById('hud-avatar-img');
@@ -6481,20 +6351,24 @@
       const weightTxt = document.getElementById('weight-val-text');
       if (weightTxt) weightTxt.textContent = '0';
 
-      if (hpBar) hpBar.style.width = `${curHp}%`;
-      if (oxyBar) oxyBar.style.width = `${curOxy}%`;
-      if (hpTxt) hpTxt.textContent = `${curHp}/100`;
-      if (oxyTxt) oxyTxt.textContent = `${curOxy}/100`;
+      this._hudWidth(hpBar, `${curHp}%`);
+      this._hudWidth(oxyBar, `${curOxy}%`);
+      this._hudText(hpTxt, `${curHp}/100`);
+      this._hudText(oxyTxt, `${curOxy}/100`);
 
       // حساب وتحديث شريط وقيمة الضغط المدمج
-      const barsVal = (1.0 + dM / 10).toFixed(1);
-      if (pressTxt) pressTxt.textContent = `${barsVal} BAR`;
+            const barsVal = (1.0 + dM / 10).toFixed(1);
+      this._hudText(pressTxt, `${barsVal}`);
       if (pressBar) {
-        const maxSafeDepth = inSub ? 500 : 100;
-        const pressPct = Math.min(100, (dM / maxSafeDepth) * 100);
-        pressBar.style.width = `${pressPct}%`;
-        pressBar.style.background = dM >= maxSafeDepth ? '#ff334b' : (dM >= maxSafeDepth * 0.85 ? '#ff9f1c' : '#00d2ff');
+        // إذا لم تكن this.maxSafeDepth معرفة مسبقاً، سنعطيها قيمة افتراضية كـ 500 لحماية اللعبة من الانهيار
+        const safeDepth = this.maxSafeDepth || 500; 
+        
+        const pressPct = Math.min(100, (dM / safeDepth) * 100);
+        this._hudWidth(pressBar, `${pressPct}%`);
+        const pressCol = dM >= safeDepth ? '#ff334b' : (dM >= safeDepth * 0.85 ? '#ff9f1c' : '#00d2ff');
+        if (pressBar.__c !== pressCol) { pressBar.__c = pressCol; pressBar.style.background = pressCol; }
       }
+
 
       // 3. تحديث لوحة قياسات الغواصة التكتيكية (يمين الشاشة)
       const telPanel = document.getElementById('sub-telemetry-panel');
@@ -6513,14 +6387,14 @@
         const telSpeedVal = document.getElementById('tel-speed-val');
         const telSpeedFill = document.getElementById('tel-speed-fill');
 
-        if (telOxyVal) telOxyVal.textContent = `${curOxy} / 100`;
-        if (telOxyFill) telOxyFill.style.width = `${curOxy}%`;
-        if (telEnergyVal) telEnergyVal.textContent = `${subFuel} / 100`;
-        if (telEnergyFill) telEnergyFill.style.width = `${subFuel}%`;
-        if (telDepthVal) telDepthVal.textContent = `- ${dM} m`;
-        if (telDepthFill) telDepthFill.style.width = `${Math.min(100, (dM / 500) * 100)}%`;
-        if (telSpeedVal) telSpeedVal.textContent = `${subSpeed} km/h`;
-        if (telSpeedFill) telSpeedFill.style.width = `${Math.min(100, (subSpeed / 45) * 100)}%`;
+        this._hudText(telOxyVal, `${curOxy} / 100`);
+        this._hudWidth(telOxyFill, `${curOxy}%`);
+        this._hudText(telEnergyVal, `${subFuel} / 100`);
+        this._hudWidth(telEnergyFill, `${subFuel}%`);
+        this._hudText(telDepthVal, `- ${dM} m`);
+        this._hudWidth(telDepthFill, `${Math.min(100, (dM / 500) * 100)}%`);
+        this._hudText(telSpeedVal, `${subSpeed} km/h`);
+        this._hudWidth(telSpeedFill, `${Math.min(100, (subSpeed / 45) * 100)}%`);
       }
 
       if (inSub) {
@@ -6533,30 +6407,34 @@
         const progress = Math.min(1.0, subDepthM / 500);
         const needleAngle = -65 + progress * 130;
         if (this.gaugeNeedle) {
-          this.gaugeNeedle.style.transform = `rotate(${needleAngle}deg)`;
-          this.gaugeNeedle.style.stroke = subDepthM >= 500 ? '#ff1744' : (subDepthM >= 440 ? '#ffa000' : '#00e5ff');
+          const needleT = `rotate(${needleAngle}deg)`;
+          if (this.gaugeNeedle.__t !== needleT) { this.gaugeNeedle.__t = needleT; this.gaugeNeedle.style.transform = needleT; }
+          const needleC = subDepthM >= 500 ? '#ff1744' : (subDepthM >= 440 ? '#ffa000' : '#00e5ff');
+          if (this.gaugeNeedle.__c !== needleC) { this.gaugeNeedle.__c = needleC; this.gaugeNeedle.style.stroke = needleC; }
         }
 
         // شريط امتلاء الهيكل باللون الأحمر الصاعد
         const dmgPct = Math.max(0, Math.min(100, 100 - sub.health));
-        if (this.hullDamageFill) {
+        if (this.hullDamageFill && this._lastDmgPct !== dmgPct) {
+          this._lastDmgPct = dmgPct;
           const fillH = (dmgPct / 100) * 40;
           this.hullDamageFill.setAttribute('y', 40 - fillH);
           this.hullDamageFill.setAttribute('height', fillH);
         }
         if (this.hullHpText) {
-          this.hullHpText.textContent = `${Math.round(sub.health)}%`;
-          this.hullHpText.style.color = sub.health < 40 ? '#ff1744' : (sub.health < 80 ? '#ffa000' : '#00e5ff');
+          this._hudText(this.hullHpText, `${Math.round(sub.health)}%`);
+          const hullC = sub.health < 40 ? '#ff1744' : (sub.health < 80 ? '#ffa000' : '#00e5ff');
+          if (this.hullHpText.__c !== hullC) { this.hullHpText.__c = hullC; this.hullHpText.style.color = hullC; }
         }
 
         // تنبيهات الخطر الحقيقية بالأيقونات والنصوص
         if (this.subWarnBanner) {
           if (subDepthM >= 500) {
             this.subWarnBanner.classList.remove('hidden');
-            this.subWarnBanner.textContent = sub.health < 30 ? '⚠ خطر سحق وشيك! اصعد فوراً' : '⚠ تم تجاوز حد الضغط! الغواصة تتضرر';
+            this._hudText(this.subWarnBanner, sub.health < 30 ? '⚠ خطر سحق وشيك! اصعد فوراً' : '⚠ تم تجاوز حد الضغط! الغواصة تتضرر');
           } else if (subDepthM >= 440) {
             this.subWarnBanner.classList.remove('hidden');
-            this.subWarnBanner.textContent = '⚡ تحذير: اقتراب من حد الضغط الأقصى (500م)';
+            this._hudText(this.subWarnBanner, '⚡ تحذير: اقتراب من حد الضغط الأقصى (500م)');
           } else {
             this.subWarnBanner.classList.add('hidden');
           }
@@ -6664,49 +6542,9 @@
       mCtx.restore();
     }
 
-    _renderMinimapTerrain(mCtx, w, h, toMx, yWater, y50) {
-      const xShore = toMx(WORLD.SHORE_X);
-      const xWall = toMx(WORLD.WALL_X);
-
-      // رسم سطح الأرض والقاع الرملي الحقيقي
-      mCtx.save();
-      mCtx.beginPath();
-      mCtx.moveTo(w, y50);
-      mCtx.lineTo(w, yWater - 16);
-      mCtx.lineTo(xShore + 14, yWater - 6);
-      mCtx.lineTo(xShore, yWater);
-
-      // انحدار الرمل تحت الماء نحو الغرب وصولاً للجدار الصخري
-      const steps = 36;
-      for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const wx = WORLD.SHORE_X - t * (WORLD.SHORE_X - WORLD.WALL_X);
-        const mx = toMx(wx);
-        const depthM = Math.min(50, (this.terrain.getHeightAt(wx) - WORLD.WATER_Y) / WORLD.PIXELS_PER_METER);
-        const my = yWater + (depthM / 50) * (y50 - yWater);
-        mCtx.lineTo(mx, my);
-      }
-      mCtx.lineTo(0, y50);
-      mCtx.closePath();
-
-      const sandGrad = mCtx.createLinearGradient(xShore, yWater, 0, y50);
-      sandGrad.addColorStop(0.0, '#dfb15b');
-      sandGrad.addColorStop(0.4, '#a67c3b');
-      sandGrad.addColorStop(1.0, '#3d4852');
-      mCtx.fillStyle = sandGrad;
-      mCtx.fill();
-
-      // خط سطح الماء النقي
-      mCtx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
-      mCtx.lineWidth = 1.4;
-      mCtx.beginPath();
-      mCtx.moveTo(0, yWater);
-      mCtx.lineTo(xShore, yWater);
-      mCtx.stroke();
-      mCtx.restore();
-    }
-
+    // رسم تضاريس الرادار القديم أُلغي — يُستخدم الإطار السلكي _drawRadarTerrainWireframe مباشرة
     _drawRadarGrid(mCtx, pL, pR, pT, pB, toRy) {
+
       mCtx.save();
       mCtx.strokeStyle = 'rgba(46, 213, 115, 0.12)';
       mCtx.lineWidth = 0.8;
@@ -6808,10 +6646,324 @@
     }
   }
 
+  // =========================================================================
+  // 9. DEVELOPER MOD MENU CONTROLLER (DRAGGABLE FAB & PERSISTENT TOOLKIT)
+  // =========================================================================
+  class DevModMenu {
+    constructor(introFlow) {
+      this.engine = null;
+      this.introFlow = introFlow;
+      this.panel = document.getElementById('dev-panel');
+      this.fab = document.getElementById('dev-fab-toggle');
+      this.header = document.getElementById('dev-panel-header');
+      this.btnClose = document.getElementById('dev-btn-close');
+
+      // حالات وإعدادات المطور المحفوظة حياً
+      this.godMode = false;
+      this.speedMultiplier = 1.0;
+      this.jumpMultiplier = 1.0;
+
+      // سحب الزر العائم (FAB)
+      this.isDraggingFab = false;
+      this.fabStartX = 0;
+      this.fabStartY = 0;
+      this.fabInitLeft = 0;
+      this.fabInitTop = 0;
+      this.fabMoved = false;
+
+      // سحب لوحة التحكم
+      this.isDraggingPanel = false;
+      this.panelStartX = 0;
+      this.panelStartY = 0;
+      this.panelInitLeft = 0;
+      this.panelInitTop = 0;
+
+      this.initEvents();
+    }
+
+    setEngine(engine) {
+      this.engine = engine;
+      // تطبيق الإعدادات المسبقة فور استلام المحرك
+      if (this.engine && this.engine.fisherman) {
+        this.engine.fisherman.godMode = this.godMode;
+        this.engine.fisherman.speedMultiplier = this.speedMultiplier;
+        this.engine.fisherman.jumpMultiplier = this.jumpMultiplier;
+      }
+    }
+
+    togglePanel() {
+      if (!this.panel) return;
+      this.panel.classList.toggle('hidden');
+    }
+
+    closePanel() {
+      if (!this.panel) return;
+      this.panel.classList.add('hidden');
+    }
+
+    initEvents() {
+      if (!this.panel || !this.fab) return;
+
+      // ---------------------------------------------------------------------
+      // 1. نظام سحب ونقر الزر العائم (Floating Action Button Drag & Click)
+      // ---------------------------------------------------------------------
+      this.fab.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        this.isDraggingFab = true;
+        this.fabMoved = false;
+        this.fabStartX = e.clientX;
+        this.fabStartY = e.clientY;
+
+        const rect = this.fab.getBoundingClientRect();
+        this.fabInitLeft = rect.left;
+        this.fabInitTop = rect.top;
+
+        try { this.fab.setPointerCapture(e.pointerId); } catch (_) {}
+      });
+
+      this.fab.addEventListener('pointermove', (e) => {
+        if (!this.isDraggingFab) return;
+        const dx = e.clientX - this.fabStartX;
+        const dy = e.clientY - this.fabStartY;
+
+        // إذا تحرك الإصبع أكثر من 4 بكسل نعتبرها حركة سحب وليست نقرة
+        if (Math.hypot(dx, dy) > 4) {
+          this.fabMoved = true;
+          const maxW = Math.max(0, window.innerWidth - this.fab.offsetWidth);
+          const maxH = Math.max(0, window.innerHeight - this.fab.offsetHeight);
+          const newX = Math.max(0, Math.min(maxW, this.fabInitLeft + dx));
+          const newY = Math.max(0, Math.min(maxH, this.fabInitTop + dy));
+
+          this.fab.style.left = `${newX}px`;
+          this.fab.style.top = `${newY}px`;
+          this.fab.style.right = 'auto';
+          this.fab.style.bottom = 'auto';
+        }
+      });
+
+      const onFabRelease = (e) => {
+        if (!this.isDraggingFab) return;
+        this.isDraggingFab = false;
+        try { this.fab.releasePointerCapture(e.pointerId); } catch (_) {}
+
+        // إذا لم يتم سحبه، تُعتبر نقرة صريحة لفتح/إغلاق القائمة
+        if (!this.fabMoved) {
+          this.togglePanel();
+        }
+      };
+
+      this.fab.addEventListener('pointerup', onFabRelease);
+      this.fab.addEventListener('pointercancel', onFabRelease);
+
+      if (this.btnClose) {
+        this.btnClose.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.closePanel();
+        });
+      }
+
+      // ---------------------------------------------------------------------
+      // 2. نظام سحب وتحريك لوحة التحكم (Panel Header Drag & Drop)
+      // ---------------------------------------------------------------------
+      if (this.header) {
+        this.header.addEventListener('pointerdown', (e) => {
+          e.stopPropagation();
+          this.isDraggingPanel = true;
+          this.panelStartX = e.clientX;
+          this.panelStartY = e.clientY;
+
+          const rect = this.panel.getBoundingClientRect();
+          this.panelInitLeft = rect.left;
+          this.panelInitTop = rect.top;
+
+          try { this.header.setPointerCapture(e.pointerId); } catch (_) {}
+        });
+
+        this.header.addEventListener('pointermove', (e) => {
+          if (!this.isDraggingPanel) return;
+          const dx = e.clientX - this.panelStartX;
+          const dy = e.clientY - this.panelStartY;
+
+          const maxW = Math.max(0, window.innerWidth - this.panel.offsetWidth);
+          const maxH = Math.max(0, window.innerHeight - this.panel.offsetHeight);
+          const newX = Math.max(0, Math.min(maxW, this.panelInitLeft + dx));
+          const newY = Math.max(0, Math.min(maxH, this.panelInitTop + dy));
+
+          this.panel.style.left = `${newX}px`;
+          this.panel.style.top = `${newY}px`;
+          this.panel.style.right = 'auto';
+          this.panel.style.bottom = 'auto';
+        });
+
+        const onPanelRelease = (e) => {
+          this.isDraggingPanel = false;
+          try { this.header.releasePointerCapture(e.pointerId); } catch (_) {}
+        };
+        this.header.addEventListener('pointerup', onPanelRelease);
+        this.header.addEventListener('pointercancel', onPanelRelease);
+      }
+
+      // ---------------------------------------------------------------------
+      // 3. أزرار التحكم والخيارات داخل القائمة
+      // ---------------------------------------------------------------------
+
+      // زر التخطي السريع إلى اللعبة
+      const btnSkip = document.getElementById('dev-btn-fast-skip');
+      if (btnSkip) {
+        btnSkip.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (this.introFlow) this.introFlow.fastSkipDirectly();
+        });
+      }
+
+      // وضع الخلود (God Mode)
+      const btnGod = document.getElementById('dev-btn-god');
+      if (btnGod) {
+        btnGod.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.godMode = !this.godMode;
+          if (this.engine && this.engine.fisherman) {
+            this.engine.fisherman.godMode = this.godMode;
+          }
+          btnGod.classList.toggle('active-opt', this.godMode);
+          btnGod.textContent = this.godMode ? 'الخلود: مفعّل 🛡️' : 'الخلود: معطل';
+        });
+      }
+
+      // تعبئة الصحة والأكسجين
+      const btnHeal = document.getElementById('dev-btn-heal');
+      if (btnHeal) {
+        btnHeal.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (this.engine && this.engine.fisherman) {
+            this.engine.fisherman.health = 100;
+            this.engine.fisherman.oxygen = 100;
+            this.engine.fisherman.isDead = false;
+          }
+        });
+      }
+
+      // إصلاح الغواصة
+      const btnFixSub = document.getElementById('dev-btn-fix-sub');
+      if (btnFixSub) {
+        btnFixSub.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (this.engine && this.engine.submarine) {
+            this.engine.submarine.health = 100;
+            this.engine.submarine.isCrushed = false;
+            this.engine.submarine.crushAnim = 0;
+            this.engine.submarine.bloodPlume = [];
+            this.engine.submarine.cracks = [];
+            this.engine.submarine.lightsOn = true;
+          }
+        });
+      }
+
+      // سرعة الحركة
+      const spdVal = document.getElementById('dev-speed-val');
+      document.querySelectorAll('.dev-speed-opt').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          document.querySelectorAll('.dev-speed-opt').forEach(b => b.classList.remove('active-opt'));
+          btn.classList.add('active-opt');
+          this.speedMultiplier = parseFloat(btn.getAttribute('data-spd')) || 1.0;
+          if (this.engine && this.engine.fisherman) {
+            this.engine.fisherman.speedMultiplier = this.speedMultiplier;
+          }
+          if (spdVal) spdVal.textContent = `${this.speedMultiplier}x`;
+        });
+      });
+
+      // قوة القفز
+      const jmpVal = document.getElementById('dev-jump-val');
+      document.querySelectorAll('.dev-jump-opt').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          document.querySelectorAll('.dev-jump-opt').forEach(b => b.classList.remove('active-opt'));
+          btn.classList.add('active-opt');
+          this.jumpMultiplier = parseFloat(btn.getAttribute('data-jmp')) || 1.0;
+          if (this.engine && this.engine.fisherman) {
+            this.engine.fisherman.jumpMultiplier = this.jumpMultiplier;
+          }
+          if (jmpVal) jmpVal.textContent = `${this.jumpMultiplier}x`;
+        });
+      });
+
+      // الطقس
+      document.querySelectorAll('.dev-wthr-opt').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          document.querySelectorAll('.dev-wthr-opt').forEach(b => b.classList.remove('active-opt'));
+          btn.classList.add('active-opt');
+          const w = btn.getAttribute('data-w');
+          if (this.engine && this.engine.dayNight) {
+            this.engine.dayNight.weather = w;
+            this.engine.dayNight.updateColors();
+          }
+        });
+      });
+
+      // الوقت
+      document.querySelectorAll('.dev-time-opt').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          document.querySelectorAll('.dev-time-opt').forEach(b => b.classList.remove('active-opt'));
+          btn.classList.add('active-opt');
+          const t = parseFloat(btn.getAttribute('data-t')) || 0;
+          if (this.engine && this.engine.dayNight) {
+            this.engine.dayNight.time = t;
+            this.engine.dayNight.updateColors();
+          }
+        });
+      });
+
+      // الانتقال الآني (Teleport)
+      document.querySelectorAll('.dev-tp-opt').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!this.engine) return;
+          const targetDepthM = parseFloat(btn.getAttribute('data-depth')) || 0;
+          const targetY = WORLD.WATER_Y + targetDepthM * WORLD.PIXELS_PER_METER;
+
+          let targetX = 8500;
+          if (targetDepthM >= 100) {
+            targetX = WORLD.WALL_X - 150;
+          }
+
+          if (this.engine.submarine && this.engine.submarine.occupied) {
+            this.engine.submarine.x = targetX;
+            this.engine.submarine.y = targetY;
+            this.engine.submarine.vx = 0;
+            this.engine.submarine.vy = 0;
+            if (this.engine.camera) {
+              this.engine.camera.x = targetX;
+              this.engine.camera.y = targetY;
+            }
+          } else if (this.engine.fisherman) {
+            this.engine.fisherman.x = targetX;
+            this.engine.fisherman.y = targetY;
+            this.engine.fisherman.vx = 0;
+            this.engine.fisherman.vy = 0;
+            if (this.engine.camera) {
+              this.engine.camera.x = targetX;
+              this.engine.camera.y = targetY;
+            }
+          }
+        });
+      });
+    }
+  }
+
   // بدء تشغيل المحرك مع نظام التدفق الأولي والتحميل المسبق
   window.addEventListener('DOMContentLoaded', () => {
-    new IntroFlowManager((preloadedAudio, preloadedAudioCtx) => {
+    let devMenuInstance = null;
+    const introFlow = new IntroFlowManager((preloadedAudio, preloadedAudioCtx) => {
       const gameEngine = new Engine();
+      window.__GAME_ENGINE__ = gameEngine;
+
+      if (devMenuInstance) {
+        devMenuInstance.setEngine(gameEngine);
+      }
       // دمج AudioContext المسبق وذاكرة الأصوات المحملة
       if (preloadedAudioCtx && gameEngine.audioManager) {
         gameEngine.audioManager.ctx = preloadedAudioCtx;
@@ -6879,7 +7031,19 @@
         });
       }
 
+      // تطبيق جودة الرسومات من اللوبي مباشرة أثناء اللعب (بدون إعادة تشغيل)
+      const qSelLive = document.getElementById('lobby-quality');
+      if (qSelLive) {
+        qSelLive.addEventListener('change', () => {
+          Quality.set(qSelLive.value);
+          if (gameEngine.fauna) gameEngine.fauna.poolSize = Quality.q.fauna;
+        });
+      }
+
       gameEngine.start();
     });
+
+    // تهيئة قائمة المطور فور تحميل الصفحة لتعمل من أول لحظة بدون تكرار مستمعات
+    devMenuInstance = new DevModMenu(introFlow);
   });
 })();

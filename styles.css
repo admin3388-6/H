@@ -639,21 +639,20 @@ canvas#gameCanvas {
 
 .hud-left-vitals-group {
   position: absolute;
-  top: calc(var(--safe-top) + 12px);
-  left: calc(var(--safe-left) + 14px);
+  top: calc(var(--safe-top) + 10px);
+  left: calc(var(--safe-left) + 10px);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
   pointer-events: auto;
 }
 
 .hud-top-right-group {
   position: absolute;
-  top: calc(var(--safe-top) + 12px);
-  right: calc(var(--safe-right) + 16px);
+  top: calc(var(--safe-top) + 10px);
+  right: calc(var(--safe-right) + 12px);
   display: flex;
   align-items: center;
-  gap: 8px;
   pointer-events: auto;
 }
 
@@ -1445,6 +1444,19 @@ canvas#gameCanvas {
   height: 28px;
 }
 
+.lobby-setting-row select {
+  width: 100%;
+  height: 34px;
+  background: #1a1a1e;
+  color: #f1ede3;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 8px;
+}
+
 .lobby-modal-close { margin-top: 4px; }
 
 /* ---------- Loading ---------- */
@@ -2184,4 +2196,1156 @@ canvas#gameCanvas {
 .menu-actions-strip {
   background: rgba(5, 7, 10, 0.78);
   border-color: rgba(255, 255, 255, 0.55);
+}
+
+/* ==========================================================================
+   PIXEL UI v12 — خط بكسل + ألواح سوداء صلبة + إزالة الزجاج نهائياً
+   ========================================================================== */
+
+/* 0) إيقاف كل تأثيرات الزجاج في الملف كاملاً */
+* {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* 1) خط البكسل للأرقام والنصوص اللاتينية مع بديل عربي سليم */
+:root {
+  --font-pixel: 'Press Start 2P', 'Cairo', monospace;
+}
+
+.env-time,
+.env-depth,
+.vital-num,
+.vital-press-num,
+#weight-val-text,
+.loading-pct,
+.loading-text,
+.throttle-word,
+.radar-btn,
+.vital-ico-o2,
+.mission-heading,
+.prestart-text {
+  font-family: var(--font-pixel);
+  letter-spacing: 0;
+}
+
+/* تضبيط أحجام عناصر البكسل الصغيرة */
+.loading-pct,
+.loading-text { font-size: 0.72rem; }
+.throttle-word { font-size: 0.5rem; }
+.vital-num,
+.vital-press-num,
+.env-time,
+.env-depth { font-size: 0.62rem; }
+.mission-heading { font-size: 0.6rem; }
+
+/* 2) استبدال كل الألواح الزجاجية بألواح سوداء صلبة */
+.compass-base,
+.diver-portrait,
+.vitals-data-tray,
+.current-mission-card,
+.env-status-strip,
+.menu-actions-strip,
+.hud-action-tab,
+.map-nav-btn,
+.industrial-throttle-panel,
+.throttle-led-column,
+.lobby-menu,
+.lobby-modal-card,
+.lobby-btn-secondary,
+.lobby-start-btn,
+.lobby-mini-btn,
+.btn-revival,
+.sub-warning-banner {
+  background: #050505;
+  border-color: #ffffff;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.85);
+}
+
+/* 3) تحسين الأزرار السوداء: حواف بكسل حادة ولمسة ضغط صلبة */
+.cyber-round-btn,
+.hud-action-tab,
+.lobby-btn-secondary,
+.lobby-start-btn,
+.lobby-mini-btn,
+.btn-revival,
+.radar-btn {
+  background: #050505;
+  border: 2px solid #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.85);
+}
+
+.cyber-round-btn:active,
+.hud-action-tab:active,
+.lobby-btn-secondary:active,
+.lobby-start-btn:active,
+.lobby-mini-btn:active,
+.btn-revival:active,
+.radar-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.85);
+  background: #1a1a1a;
+}
+
+/* ==========================================================================
+   PIXEL UI v13 — عربي مبكسل + لوحة حيوية زاوية + لوبي موحّد
+   ========================================================================== */
+
+/* 1) فرض البكسل على كل نصوص الواجهة: أرقام/لاتيني = Press Start 2P، عربي = Reem Kufi */
+body,
+button,
+input,
+select,
+.hud-layer,
+.touch-controls-layer,
+.lobby-menu,
+.lobby-modal-card,
+.lobby-status,
+.map-modal,
+.revival-modal,
+.loading-widget,
+.industrial-throttle-panel,
+.radar-btn,
+.sub-warning-banner,
+.prestart-text,
+.current-mission-card,
+.env-status-strip,
+.vitals-data-tray {
+  font-family: 'Press Start 2P', 'Reem Kufi', 'Cairo', sans-serif;
+  letter-spacing: 0;
+}
+
+/* المقدمة الكوميكية أيضاً (تتغلب على style الداخلي) */
+#comic-overlay {
+  font-family: 'Press Start 2P', 'Reem Kufi', 'Cairo', sans-serif !important;
+}
+
+/* ضبط أحجام النصوص العربية المبكسلة داخل البطاقات */
+.mission-subtext { font-size: 0.66rem; }
+.lobby-btn-secondary,
+.lobby-start-btn { font-size: 0.72rem; }
+.lobby-modal-card p { font-size: 0.7rem; }
+.btn-revival { font-size: 0.78rem; }
+
+/* 2) اللوبي بنفس هوية اللعبة: أسود صلب + إطار أبيض بكسل مربع */
+#start-overlay.lobby-screen::before {
+  background: linear-gradient(-90deg, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0.3) 35%, rgba(0, 0, 0, 0) 60%);
+}
+
+.lobby-menu {
+  background: #050505;
+  border: 3px solid #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.9);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.lobby-title { color: #ffffff; }
+.lobby-subtitle { color: #9aa0a6; }
+.lobby-status { color: #9aa0a6; }
+
+.lobby-start-btn,
+.lobby-btn-secondary {
+  background: #050505;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 0;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.9);
+}
+
+.lobby-start-btn { background: #161616; }
+
+.lobby-start-btn:active,
+.lobby-btn-secondary:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.9);
+  background: #262626;
+}
+
+.lobby-mini-btn {
+  background: #050505;
+  border: 2px solid #ffffff;
+  border-radius: 0;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.9);
+}
+
+.lobby-modal { background: rgba(0, 0, 0, 0.72); }
+
+.lobby-modal-card {
+  background: #050505;
+  border: 3px solid #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.9);
+}
+
+.lobby-modal-card h2 {
+  color: #ffffff;
+  border-bottom: 2px solid #ffffff;
+}
+
+.lobby-modal-card p { color: #c9cdd2; }
+.lobby-setting-row { color: #ffffff; }
+
+/* 3) لوحة الحيوية — شريط زاوي أسود واحد على طراز الصورة */
+.diver-vitals-strip {
+  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.85));
+}
+
+.vitals-data-tray {
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 50%, calc(100% - 22px) 100%, 14px 100%, 0 62%);
+  background: #050505;
+  border: 3px solid #ffffff;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 7px 32px 8px 28px;
+  gap: 5px;
+}
+
+.diver-portrait {
+  width: 46px;
+  height: 46px;
+  border-radius: 4px;
+  border: 3px solid #ffffff;
+  background: #0d0d0d;
+  box-shadow: none;
+  z-index: 3;
+}
+
+/* الصف العلوي يصبح عمودياً: شريط HP طويل فوق شريط الأكسجين كما في الصورة */
+.vitals-upper-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.vital-col { width: 100%; }
+
+.vital-track {
+  width: 175px;
+  height: 8px;
+  background: #1c1c1c;
+  border: 1px solid #3a3a3a;
+  border-radius: 0;
+}
+
+.fill-hp {
+  background: #8dff2e;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.fill-oxy {
+  background: #4dc3ff;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.vital-num { font-size: 0.58rem; color: #ffffff; }
+.vital-press-num { font-size: 0.58rem; color: #ffffff; }
+
+.press-track {
+  width: 120px !important;
+  height: 5px !important;
+  border: 1px solid #3a3a3a;
+  border-radius: 0;
+}
+
+.fill-press {
+  background: #ffffff;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+/* توحيد سماكة الإطارات البيضاء لبقية البطاقات العلوية */
+.env-status-strip,
+.current-mission-card,
+.menu-actions-strip {
+  border: 2px solid #ffffff;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   PIXEL UI v14 — Pixel AE (عربي بكسل حقيقي) + بطاقة سداسية + دم أحمر + أيقونات
+   ========================================================================== */
+
+/* 0) خط بكسل عربي/إنجليزي حقيقي — حمّل Pixel AE من itch.io وضعه في voices/PixelAE.ttf */
+@font-face {
+  font-family: 'Pixel AE';
+  src: url('voices/PixelAE.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+body,
+button,
+input,
+select,
+.hud-layer,
+.touch-controls-layer,
+.lobby-menu,
+.lobby-modal-card,
+.lobby-status,
+.map-modal,
+.revival-modal,
+.loading-widget,
+.industrial-throttle-panel,
+.radar-btn,
+.sub-warning-banner,
+.prestart-text,
+.current-mission-card,
+.env-status-strip,
+.vitals-data-tray {
+  font-family: 'Pixel AE', 'Press Start 2P', 'Cairo', sans-serif;
+}
+
+#comic-overlay {
+  font-family: 'Pixel AE', 'Press Start 2P', 'Cairo', sans-serif !important;
+}
+
+/* 1) حواف بكسل حقيقية: زوايا مربعة كاملة + إطار أبيض صلب + ظل صلب */
+.cyber-round-btn,
+.hud-action-tab,
+.lobby-btn-secondary,
+.lobby-start-btn,
+.lobby-mini-btn,
+.btn-revival,
+.radar-btn,
+.map-nav-btn {
+  border-radius: 0 !important;
+  border: 2px solid #ffffff;
+  box-shadow: 0 4px 0 #000000;
+  background: #050505;
+  color: #ffffff;
+}
+
+.industrial-throttle-panel,
+.menu-actions-strip,
+.env-status-strip,
+.current-mission-card {
+  border-radius: 0;
+  box-shadow: 0 4px 0 #000000;
+}
+
+/* تنعيم بكسل لكل الأيقونات */
+img {
+  image-rendering: pixelated;
+}
+
+/* بطاقة الحيوية بدون أي قص وبدون أي ظلال أو هالات بيضاء */
+.diver-vitals-strip {
+  filter: none !important;
+  -webkit-filter: none !important;
+}
+
+.vitals-data-tray {
+  clip-path: none !important;
+  -webkit-clip-path: none !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  gap: 5px !important;
+}
+
+/* البورتريه: صندوق أبيض يطفو فوق الحافة اليسرى للوح */
+.diver-portrait {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  border: 3px solid #ffffff;
+  background: #0d0d0d;
+  box-shadow: 0 4px 0 #000000;
+  margin-right: -16px;
+  z-index: 3;
+  flex-shrink: 0;
+}
+
+/* الأرقام البيضاء المبكسلة فوق الأشرطة ومتمركزة */
+.vital-top {
+  justify-content: center;
+  gap: 5px;
+}
+
+.vital-num {
+  font-size: 0.62rem;
+  color: #ffffff;
+}
+
+/* 3) الأشرطة: دم أحمر / أكسجين أزرق — مسارات داكنة بإطار رمادي مربع */
+.vital-track {
+  width: 185px;
+  height: 9px;
+  background: #141414;
+  border: 1px solid #3a3a3a;
+  border-radius: 0;
+}
+
+.fill-hp {
+  background: #ff2e2e;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.fill-oxy {
+  background: #35b6ff;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.press-track {
+  width: 130px !important;
+  height: 5px !important;
+  background: #141414;
+  border: 1px solid #3a3a3a;
+  border-radius: 0;
+}
+
+.fill-press {
+  background: #ffffff;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.vital-press-num {
+  color: #ffffff;
+}
+
+.vital-pressure-row {
+  gap: 7px;
+}
+
+/* 4) الأيقونات الجديدة */
+.mission-tab-ico {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.lobby-mini-ico {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+/* ==========================================================================
+   PIXEL HUD DESIGN SYSTEM v15 — نظام تصميم موحّد نهائي
+   --------------------------------------------------------------------------
+   لغة واحدة لكل الواجهة: أسود صلب + إطار أبيض 2px + زوايا مربعة
+   + ظل صلب 4px + مسارات داكنة + أرقام بيضاء بكسل
+   ========================================================================== */
+
+/* 0) الرموز المشتركة — أي تعديل مستقبلي يتم من هنا فقط */
+:root {
+  --hud-bg: #050505;
+  --hud-bg-2: #0d0d0d;
+  --hud-track: #141414;
+  --hud-line: #3a3a3a;
+  --hud-border: #ffffff;
+  --hud-text: #ffffff;
+  --hud-dim: #9aa0a6;
+  --hud-red: #ff2e2e;
+  --hud-blue: #35b6ff;
+  --hud-amber: #ff9f1c;
+  --hud-shadow: 0 4px 0 #000000;
+}
+
+/* إيقاف الزجاج نهائياً */
+* {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* الخط الموحّد للواجهة كاملة */
+.hud-layer,
+.touch-controls-layer,
+#hud button,
+#touch-controls button,
+.lobby-menu button,
+.map-modal button,
+.revival-modal button {
+  font-family: 'Pixel AE', 'Press Start 2P', 'Cairo', sans-serif;
+  letter-spacing: 0;
+}
+
+img {
+  image-rendering: pixelated;
+}
+
+/* 1) الأزرار الموحّدة — شكل واحد لكل أزرار اللعبة */
+.cyber-round-btn,
+.hud-action-tab,
+.lobby-btn-secondary,
+.lobby-start-btn,
+.lobby-mini-btn,
+.btn-revival,
+.radar-btn,
+.map-nav-btn {
+  background: var(--hud-bg);
+  color: var(--hud-text);
+  border: 2px solid var(--hud-border);
+  border-radius: 0;
+  box-shadow: var(--hud-shadow);
+}
+
+.cyber-round-btn:active,
+.hud-action-tab:active,
+.lobby-btn-secondary:active,
+.lobby-start-btn:active,
+.lobby-mini-btn:active,
+.btn-revival:active,
+.radar-btn:active,
+.map-nav-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #000000;
+  background: #1a1a1a;
+}
+
+/* تبويبات القائمة العلوية بحجم موحّد واحد */
+.hud-action-tab {
+  width: 34px;
+  height: 30px;
+}
+
+/* 2) الألواح المسطحة الموحّدة */
+.current-mission-card,
+.env-status-strip,
+.menu-actions-strip,
+.industrial-throttle-panel,
+.lobby-menu,
+.lobby-modal-card,
+.sub-warning-banner,
+.loading-bar-border {
+  background: var(--hud-bg);
+  border: 2px solid var(--hud-border);
+  border-radius: 0;
+  box-shadow: var(--hud-shadow);
+}
+
+/* محاذاة وتباعد موحّد للكتل العلوية */
+.hud-left-vitals-group { gap: 8px; }
+.hud-top-right-group { gap: 8px; }
+
+.env-status-strip {
+  padding: 5px 12px;
+  gap: 6px;
+}
+
+.menu-actions-strip {
+  padding: 5px 10px 5px 14px;
+  gap: 6px;
+}
+
+.current-mission-card {
+  padding: 6px 14px 6px 12px;
+  gap: 8px;
+  max-width: 250px;
+}
+
+.mission-heading { color: var(--hud-amber); }
+.mission-subtext { color: #d7e3ee; }
+.mission-chevron { color: var(--hud-dim); }
+
+/* 3) نظام الأشرطة الموحّد: مقياسان فقط (9px رئيسي / 5px ثانوي) */
+.vital-track {
+  width: 185px;
+  height: 9px;
+  background: var(--hud-track);
+  border: 1px solid var(--hud-line);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.press-track {
+  width: 130px !important;
+  height: 5px !important;
+  background: var(--hud-track);
+  border: 1px solid var(--hud-line);
+  border-radius: 0;
+}
+
+.fill-hp {
+  background: var(--hud-red);
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.fill-oxy {
+  background: var(--hud-blue);
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.fill-press {
+  background: var(--hud-border);
+  box-shadow: none;
+  border-radius: 0;
+}
+
+/* 4) البورتريه والأرقام */
+.diver-portrait {
+  width: 48px;
+  height: 48px;
+  background: var(--hud-bg-2);
+  border: 3px solid var(--hud-border);
+  border-radius: 4px;
+  box-shadow: var(--hud-shadow);
+}
+
+.vital-num,
+.vital-press-num,
+.env-time,
+.env-depth {
+  font-size: 0.62rem;
+  color: var(--hud-text);
+}
+
+.env-divider { color: var(--hud-line); }
+.env-depth { color: var(--hud-blue); }
+
+.vital-top {
+  justify-content: center;
+  gap: 5px;
+}
+
+.vital-pressure-row { gap: 7px; }
+.vital-weight-row { gap: 6px; }
+
+/* 5) الـJoystick: قاعدة سوداء موحّدة + مقبض مربع بكسل */
+.compass-base {
+  background: var(--hud-bg);
+  border: 2px solid var(--hud-border);
+  box-shadow: var(--hud-shadow);
+}
+
+.compass-reticle {
+  border-color: var(--hud-line);
+  box-shadow: none;
+}
+
+.compass-knob {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  background: var(--hud-border);
+  border: 2px solid var(--hud-bg-2);
+  box-shadow: 0 3px 0 #000000;
+}
+
+/* 6) عتلة السرعة: نفس الرموز */
+.throttle-slot-cut {
+  background: #000000;
+  border: 1px solid var(--hud-line);
+  box-shadow: none;
+}
+
+.throttle-led-column {
+  background: #000000;
+  border: 1px solid var(--hud-line);
+}
+
+.led-block {
+  background: #232323;
+  border: 1px solid #111111;
+}
+
+.led-block.active {
+  background: var(--hud-amber);
+  box-shadow: 0 0 6px rgba(255, 159, 28, 0.8);
+}
+
+.lever-grip {
+  background: #1c1c1c;
+  border: 2px solid var(--hud-line);
+}
+
+.lever-cap {
+  background: var(--hud-border);
+  box-shadow: none;
+}
+
+.throttle-word { color: var(--hud-text); }
+.throttle-down-arrow { border-top-color: var(--hud-dim); }
+
+/* 7) اللوبي: نفس اللغة البصرية */
+.lobby-menu {
+  padding: 16px 18px 13px;
+  gap: 9px;
+}
+
+.lobby-title { color: var(--hud-text); }
+.lobby-subtitle,
+.lobby-status { color: var(--hud-dim); }
+
+.lobby-start-btn { background: #161616; }
+.lobby-modal { background: rgba(0, 0, 0, 0.72); }
+.lobby-modal-card h2 { color: var(--hud-text); border-bottom: 2px solid var(--hud-line); }
+.lobby-modal-card p { color: #c9cdd2; }
+.lobby-setting-row { color: var(--hud-text); }
+
+/* 8) تحذير الضغط + الإنعاش + الخريطة + التحميل */
+.sub-warning-banner {
+  background: var(--hud-red);
+  border: 2px solid var(--hud-border);
+  border-radius: 0;
+  box-shadow: var(--hud-shadow);
+  color: #ffffff;
+}
+
+.revival-modal { background: rgba(0, 0, 0, 0.6); }
+
+.map-modal { background: rgba(0, 0, 0, 0.78); }
+
+.radar-canvas-wrap {
+  border: 2px solid var(--hud-border);
+  border-radius: 0;
+  box-shadow: var(--hud-shadow);
+}
+
+.radar-top-bar { border-bottom: 1px solid var(--hud-line); }
+
+.loading-header { color: var(--hud-text); }
+.loading-bar-border {
+  border: 2px solid var(--hud-border);
+  background: var(--hud-bg);
+}
+
+.prestart-text { color: var(--hud-text); }
+
+/* 9) إزالة كل الفلاتر/الظلال القديمة المتبقية حول العناصر */
+.diver-vitals-strip,
+.vitals-data-tray,
+.current-mission-card,
+.env-status-strip,
+.menu-actions-strip,
+.compass-base,
+.industrial-throttle-panel,
+.lobby-menu,
+.lobby-modal-card {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* إخفاء دائرة البورتريه بالكامل */
+.diver-portrait {
+  display: none !important;
+}
+
+/* تم تنظيف قواعد الأعمدة القديمة */
+
+/* تم حذف قواعد الإزاحة القديمة للضغط */
+
+/* تم حذف تموضع الضغط والوزن القديمين */
+
+/* ==========================================================================
+   VITALS PIXEL HUD v19 — أشرطة مختصرة، نصوص متمركزة بدقة، أزرار عمودية
+   ========================================================================== */
+
+.diver-vitals-strip {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  direction: ltr !important;
+  pointer-events: auto;
+}
+
+/* صينية الأشرطة: في أقصى اليسار مباشرة بدون قص وبدون هالات */
+.vitals-data-tray {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: transparent !important;
+  clip-path: none !important;
+  -webkit-clip-path: none !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  padding: 0;
+  margin: 0;
+  border: none;
+  box-shadow: none;
+}
+
+/* كل سطر شريط: الشريط وبجانبه الأيقونة يميناً */
+.vital-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* شريط القياس: ارتفاع 17px لمنع قص الأرقام + عرض 105px */
+.vital-track {
+  position: relative !important;
+  width: 105px !important;
+  height: 17px !important;
+  background: #0e0e10 !important;
+  border: 1.5px solid #3c3c44 !important;
+  box-shadow: inset 0 0 0 1px #000000, 0 2px 0 rgba(0, 0, 0, 0.7) !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* شريط الضغط: مصغر ونحيف ومحاذٍ لليسار تماماً دون أي إزاحة */
+.vital-track.press-track {
+  width: 68px !important;
+  height: 8px !important;
+  position: relative !important;
+  left: 0 !important;
+  margin: 0 !important;
+}
+
+/* تعبئة الأشرطة */
+.vital-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  z-index: 1;
+  transition: width 0.15s ease-out;
+  border-radius: 0;
+}
+
+.fill-hp {
+  background: linear-gradient(180deg, #ff4d4d 0%, #e02424 55%, #9e1313 100%);
+}
+
+.fill-oxy {
+  background: linear-gradient(180deg, #5ec7ff 0%, #209fee 55%, #0f6aa5 100%);
+}
+
+.fill-press {
+  background: linear-gradient(180deg, #e3f26d 0%, #b8cc3b 55%, #7a8820 100%);
+}
+
+/* الأرقام في منتصف الشريط تماماً رأسياً وأفقياً دون اقتطاع */
+.vital-num {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 2 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  font-family: var(--font-pixel) !important;
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  color: #ffffff !important;
+  text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000 !important;
+  letter-spacing: 0 !important;
+  pointer-events: none !important;
+  white-space: nowrap !important;
+  padding-top: 2px !important;
+}
+
+/* خلية الأيقونة بجانب كل شريط يميناً */
+.vital-ico-cell {
+  width: 15px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.vital-ico-cell .vital-ico-img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  display: block;
+}
+
+.oxy-wrap {
+  position: relative;
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+}
+
+/* سطر الوزن يقع تحت شريط الضغط مباشرة ومحاذٍ له لليسار */
+.vital-weight-row {
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 4px !important;
+  margin: 3px 0 0 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+.vital-weight-num {
+  font-family: var(--font-pixel) !important;
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  text-shadow: 1px 1px 0 #000000 !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+}
+
+.vital-weight-row .vital-ico-img {
+  width: 13px !important;
+  height: 13px !important;
+  object-fit: contain !important;
+}
+
+/* الأزرار الثلاثة عمودياً فوق بعضها بجانب الأشرطة يميناً وبدون بطاقة خلفية */
+.vitals-side-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.vitals-side-actions .hud-action-tab {
+  width: 25px;
+  height: 25px;
+  background: #050505;
+  border: 1.5px solid #ffffff;
+  border-radius: 0;
+  box-shadow: 0 2px 0 #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.vitals-side-actions .hud-action-tab:active {
+  transform: translateY(1px);
+  box-shadow: none;
+  background: #1c1c1c;
+}
+
+.vitals-side-actions .tab-ico-img {
+  width: 13px;
+  height: 13px;
+  object-fit: contain;
+}
+
+/* ==========================================================================
+   DEVELOPER MOD MENU UI — نافذة وزر عائم فائق الأولوية قابل للسحب الحر
+   ========================================================================== */
+.dev-menu-root {
+  position: fixed;
+  inset: 0;
+  z-index: 10000000;
+  pointer-events: none;
+}
+
+/* زر الفتح العائم القابل للسحب والتحريك في أي مكان على الشاشة */
+.dev-fab-btn {
+  position: fixed;
+  top: calc(var(--safe-top) + 12px);
+  left: 16px;
+  width: 58px;
+  height: 32px;
+  background: #ff2244;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 4px 0 #000000, 0 0 10px rgba(255, 34, 68, 0.45);
+  font-family: var(--font-pixel);
+  font-size: 0.66rem;
+  font-weight: 900;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none; /* حظر إيماءات المتصفح لضمان سلاسة السحب */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 1px;
+  z-index: 10000002;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.dev-fab-btn:active {
+  cursor: grabbing;
+  box-shadow: 0 2px 0 #000000;
+}
+
+/* اللوحة الرئيسية للمطور */
+.dev-panel {
+  position: fixed;
+  top: 56px;
+  left: 16px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  max-height: 85vh;
+  background: #08080a;
+  border: 2px solid #ffffff;
+  box-shadow: 0 6px 0 #000000, 0 12px 30px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  z-index: 10000001;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.dev-panel.hidden {
+  display: none !important;
+}
+
+/* شريط السحب والإمساك */
+.dev-panel-header {
+  background: #18181f;
+  border-bottom: 2px solid #ffffff;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: grab;
+  touch-action: none;
+}
+
+.dev-panel-header:active {
+  cursor: grabbing;
+}
+
+.dev-title {
+  font-family: var(--font-pixel);
+  font-size: 0.68rem;
+  font-weight: 900;
+  color: #ffcc00;
+}
+
+.dev-close-x {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-family: var(--font-pixel);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+/* المحتوى القابل للتمرير */
+.dev-panel-body {
+  padding: 10px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dev-section {
+  background: #101014;
+  border: 1px solid #2d2d38;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dev-sec-title {
+  font-family: var(--font-pixel);
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: #00e5ff;
+  margin-bottom: 2px;
+}
+
+.dev-label {
+  font-family: var(--font-pixel);
+  font-size: 0.52rem;
+  color: #d0d0d8;
+}
+
+/* الأزرار العامة للمطور */
+.dev-action-btn {
+  background: #1c1c24;
+  color: #ffffff;
+  border: 1px solid #ffffff;
+  padding: 7px 10px;
+  font-family: var(--font-pixel);
+  font-size: 0.56rem;
+  cursor: pointer;
+  border-radius: 0;
+  box-shadow: 0 2px 0 #000000;
+  text-align: center;
+}
+
+.dev-action-btn:active {
+  transform: translateY(1px);
+  box-shadow: none;
+  background: #2b2b38;
+}
+
+.dev-btn-primary {
+  background: #b91c1c;
+  color: #ffffff;
+  border-color: #ff6b6b;
+  font-weight: 900;
+}
+
+.dev-btn-primary:active {
+  background: #e02424;
+}
+
+.dev-action-btn.active-opt {
+  background: #00aa44;
+  border-color: #44ff88;
+  color: #ffffff;
+}
+
+/* شبكات الأزرار المتجاوبة */
+.dev-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.dev-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+}
+
+.dev-btn-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.dev-opt-btn {
+  flex: 1;
+  min-width: 50px;
+  background: #181820;
+  color: #d0d0d8;
+  border: 1px solid #3c3c4a;
+  padding: 5px 4px;
+  font-family: var(--font-pixel);
+  font-size: 0.52rem;
+  cursor: pointer;
+  border-radius: 0;
+  text-align: center;
+}
+
+.dev-opt-btn:active,
+.dev-opt-btn.active-opt {
+  background: #00d2ff;
+  color: #000000;
+  font-weight: 700;
+  border-color: #ffffff;
 }
