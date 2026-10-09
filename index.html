@@ -291,10 +291,11 @@ elements.end.classList.remove('visible');elements.narration.classList.remove('na
           </span>
         </button>
 
-        <!-- زر القفز السيبراني بالسهم البرتقالي -->
+        <!-- زر القفز بأيقونة jump.webp -->
         <button id="btn-jump" class="cyber-round-btn btn-jump-themed" type="button" aria-label="قفز">
-          <div class="cyber-btn-halo"></div>
-          <svg class="cyber-svg-arrow" viewBox="0 0 24 24"><path fill="#B92828" d="M12 4l-7 7h4v9h6v-9h4z"/></svg> 
+          <span class="cyber-icon-center">
+            <img class="action-ico-img" src="voices/jump.webp" alt="" onerror="this.style.opacity='0'">
+          </span>
         </button>
 
       </div>
@@ -343,7 +344,7 @@ elements.end.classList.remove('visible');elements.narration.classList.remove('na
               </div>
               <div class="vital-ico-cell">
                 <img id="hp-icon-diver" class="vital-ico-img" src="voices/heart.webp" alt="" onerror="this.style.opacity='0'">
-                <img id="hp-icon-sub" class="vital-ico-img" src="voices/submarine.webp" alt="" style="display:none" onerror="this.style.opacity='0'">
+                <img id="hp-icon-sub" class="vital-ico-img hidden" src="voices/submarine.webp" alt="" onerror="this.style.opacity='0'">
               </div>
             </div>
 

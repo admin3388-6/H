@@ -250,11 +250,25 @@
 
       if (this.panel) {
         const leds = this.panel.querySelectorAll('.led-block');
-        const activeCountMap = { '-1': 1, '0': 2, '1': 3, '2': 4, '3': 5, '4': 6 };
-        const activeCount = activeCountMap[String(this.level)] || 2;
         leds.forEach((led) => {
           const idx = parseInt(led.getAttribute('data-idx'), 10);
-          led.classList.toggle('active', idx < activeCount);
+          let isActive = false;
+          if (this.level === -1) {
+            isActive = (idx === 0);
+          } else if (this.level === 0) {
+            isActive = (idx === 1);
+          } else {
+            isActive = (idx >= 1 && idx <= this.level + 1);
+          }
+          led.classList.toggle('active', isActive);
+        });
+
+        const colorMap = { '-1': '#ffffff', '0': '#8e98a5', '1': '#2ed573', '2': '#ffd32a', '3': '#ff9f1c', '4': '#ff3838' };
+        const curCol = colorMap[String(this.level)] || '#8e98a5';
+        const caps = this.knob.querySelectorAll('.lever-cap');
+        caps.forEach((cap) => {
+          cap.style.background = curCol;
+          cap.style.boxShadow = `0 0 8px ${curCol}`;
         });
       }
     }
@@ -6341,8 +6355,23 @@
       const hpIconSub = document.getElementById('hp-icon-sub');
       const hpIconDiver = document.getElementById('hp-icon-diver');
       if (hpIconSub && hpIconDiver) {
+        hpIconSub.classList.toggle('hidden', !inSub);
+        hpIconDiver.classList.toggle('hidden', !!inSub);
         hpIconSub.style.display = inSub ? 'block' : 'none';
         hpIconDiver.style.display = inSub ? 'none' : 'block';
+      }
+
+      // مزامنة حالة زر الكشاف وإبعاد الأزرار عن عتلة السرعة عند ركوب الغواصة
+      const btnLightToggle = document.getElementById('btn-light-toggle');
+      if (btnLightToggle) {
+        const isLightOn = inSub ? !!this.submarine.lightsOn : !!this.fisherman.lightOn;
+        btnLightToggle.classList.toggle('is-on', isLightOn);
+        btnLightToggle.classList.toggle('is-off', !isLightOn);
+      }
+
+      if (!this._rightControlsEl) this._rightControlsEl = document.querySelector('.right-controls-cluster');
+      if (this._rightControlsEl) {
+        this._rightControlsEl.classList.toggle('in-sub', inSub);
       }
       // شارة zzz فوق أيقونة الأكسجين داخل الغواصة (لا استهلاك)
       const oxyWrap = document.getElementById('oxy-icon-wrap');

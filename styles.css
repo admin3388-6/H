@@ -950,6 +950,27 @@ canvas#gameCanvas {
   gap: 12px;
   pointer-events: auto;
   z-index: 25;
+  transition: right 0.25s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+
+.right-controls-cluster.in-sub {
+  right: calc(var(--safe-right) + 125px);
+}
+
+#btn-light-toggle {
+  transition: opacity 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#btn-light-toggle.is-on {
+  opacity: 1 !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 3px 0 #000000 !important;
+}
+
+#btn-light-toggle.is-off {
+  opacity: 0.45 !important;
+  border-color: #3c424e !important;
+  box-shadow: 0 2px 0 #000000 !important;
 }
 
 .cyber-round-btn {
@@ -2167,10 +2188,10 @@ canvas#gameCanvas {
 /* ==========================================================================
    HUD v11 — أيقونات صور voices/ + شفافية بطاقات محسّنة
    ========================================================================== */
-.env-ico-img { width: 16px; height: 16px; object-fit: contain; display: block; }
-.tab-ico-img { width: 15px; height: 15px; object-fit: contain; display: block; }
-.vital-ico-img { width: 15px; height: 15px; object-fit: contain; display: block; }
-.action-ico-img { width: 26px; height: 26px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)); }
+.env-ico-img { width: 19px; height: 19px; object-fit: contain; display: block; }
+.tab-ico-img { width: 17px; height: 17px; object-fit: contain; display: block; }
+.vital-ico-img { width: 19px; height: 19px; object-fit: contain; display: block; }
+.action-ico-img { width: 31px; height: 31px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)); }
 
 /* شارة النوم فوق أيقونة الأكسجين داخل الغواصة */
 .oxy-wrap { position: relative; display: inline-flex; width: 16px; height: 16px; }
@@ -2620,10 +2641,16 @@ img {
 
 /* 4) الأيقونات الجديدة */
 .mission-tab-ico {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
   flex-shrink: 0;
+}
+
+.current-mission-card {
+  background: var(--hud-bg) !important;
+  border: 1.5px solid var(--hud-border) !important;
+  box-shadow: var(--hud-shadow) !important;
 }
 
 .lobby-mini-ico {
@@ -2642,17 +2669,17 @@ img {
 
 /* 0) الرموز المشتركة — أي تعديل مستقبلي يتم من هنا فقط */
 :root {
-  --hud-bg: #050505;
-  --hud-bg-2: #0d0d0d;
-  --hud-track: #141414;
-  --hud-line: #3a3a3a;
-  --hud-border: #ffffff;
+  --hud-bg: rgba(26, 30, 38, 0.78);
+  --hud-bg-2: rgba(18, 21, 27, 0.82);
+  --hud-track: #101216;
+  --hud-line: #3c424e;
+  --hud-border: #7f8996;
   --hud-text: #ffffff;
   --hud-dim: #9aa0a6;
   --hud-red: #ff2e2e;
   --hud-blue: #35b6ff;
   --hud-amber: #ff9f1c;
-  --hud-shadow: 0 4px 0 #000000;
+  --hud-shadow: 0 3px 0 rgba(0, 0, 0, 0.65);
 }
 
 /* إيقاف الزجاج نهائياً */
@@ -2691,6 +2718,11 @@ img {
   border: 2px solid var(--hud-border);
   border-radius: 0;
   box-shadow: var(--hud-shadow);
+}
+
+.cyber-round-btn {
+  border-color: var(--hud-border) !important;
+  background: var(--hud-bg) !important;
 }
 
 .cyber-round-btn:active,
@@ -2732,8 +2764,14 @@ img {
 .hud-top-right-group { gap: 8px; }
 
 .env-status-strip {
-  padding: 5px 12px;
-  gap: 6px;
+  background: var(--hud-bg) !important;
+  border: 1.5px solid var(--hud-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--hud-shadow) !important;
+  padding: 5px 12px !important;
+  gap: 6px !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
 .menu-actions-strip {
@@ -2831,10 +2869,10 @@ img {
 .compass-knob {
   width: 48px;
   height: 48px;
-  border-radius: 4px;
-  background: var(--hud-border);
-  border: 2px solid var(--hud-bg-2);
-  box-shadow: 0 3px 0 #000000;
+  border-radius: 50% !important;
+  background: radial-gradient(circle at 38% 35%, #565e6b 0%, #3b424c 65%, #2a2f38 100%) !important;
+  border: 2.5px solid #8c97a5 !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.25) !important;
 }
 
 /* 6) عتلة السرعة: نفس الرموز */
@@ -2855,8 +2893,37 @@ img {
 }
 
 .led-block.active {
-  background: var(--hud-amber);
-  box-shadow: 0 0 6px rgba(255, 159, 28, 0.8);
+  box-shadow: 0 0 6px currentColor;
+}
+
+.led-block[data-idx="0"].active {
+  background: #ffffff !important;
+  color: #ffffff;
+}
+
+.led-block[data-idx="1"].active {
+  background: #8e98a5 !important;
+  color: #8e98a5;
+}
+
+.led-block[data-idx="2"].active {
+  background: #2ed573 !important;
+  color: #2ed573;
+}
+
+.led-block[data-idx="3"].active {
+  background: #ffd32a !important;
+  color: #ffd32a;
+}
+
+.led-block[data-idx="4"].active {
+  background: #ff9f1c !important;
+  color: #ff9f1c;
+}
+
+.led-block[data-idx="5"].active {
+  background: #ff3838 !important;
+  color: #ff3838;
 }
 
 .lever-grip {
@@ -3048,28 +3115,32 @@ img {
   padding-top: 2px !important;
 }
 
-/* خلية الأيقونة بجانب كل شريط يميناً */
+/* خلية الأيقونة بحجم مكبر +20% */
 .vital-ico-cell {
-  width: 15px;
-  height: 15px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  width: 19px !important;
+  height: 19px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
 }
 
 .vital-ico-cell .vital-ico-img {
-  width: 14px;
-  height: 14px;
-  object-fit: contain;
+  width: 18px !important;
+  height: 18px !important;
+  object-fit: contain !important;
   display: block;
 }
 
+.vital-ico-cell .vital-ico-img.hidden {
+  display: none !important;
+}
+
 .oxy-wrap {
-  position: relative;
-  display: inline-flex;
-  width: 14px;
-  height: 14px;
+  position: relative !important;
+  display: inline-flex !important;
+  width: 18px !important;
+  height: 18px !important;
 }
 
 /* سطر الوزن يقع تحت شريط الضغط مباشرة ومحاذٍ له لليسار */
@@ -3099,16 +3170,16 @@ img {
 }
 
 .vital-weight-row .vital-ico-img {
-  width: 13px !important;
-  height: 13px !important;
+  width: 17px !important;
+  height: 17px !important;
   object-fit: contain !important;
 }
 
-/* الأزرار الثلاثة عمودياً فوق بعضها بجانب الأشرطة يميناً وبدون بطاقة خلفية */
+/* الأزرار الثلاثة بحواف رمادية وخلفية شفافة ومقاس مكبر +20% */
 .vitals-side-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -3117,19 +3188,18 @@ img {
 }
 
 .vitals-side-actions .hud-action-tab {
-  width: 25px;
-  height: 25px;
-  background: #050505;
-  border: 1.5px solid #ffffff;
-  border-radius: 0;
-  box-shadow: 0 2px 0 #000000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
+  width: 28px !important;
+  height: 28px !important;
+  background: var(--hud-bg) !important;
+  border: 1.5px solid var(--hud-border) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.6) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  padding: 0 !important;
 }
-
 .vitals-side-actions .hud-action-tab:active {
   transform: translateY(1px);
   box-shadow: none;
