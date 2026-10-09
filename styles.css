@@ -980,7 +980,7 @@ canvas#gameCanvas {
 
 #btn-light-toggle,
 #btn-jump {
-  background: url('voices/buttons3.png') no-repeat center center / 100% 100% !important;
+  background: url('voices/Buttons3.png') no-repeat center center / 100% 100% !important;
   border: none !important;
   box-shadow: none !important;
   border-radius: 0 !important;
