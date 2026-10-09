@@ -1704,7 +1704,16 @@
       // انضغاط وسحق الغواصة فيزيائياً مع انتشار سحاب الدم
       if (this.isCrushed) {
         this.crushTimer += dt;
-        this.crushAnim = Math.min(1, this.crushAnim + dt * 1.8);
+        this.crushAnim = Math.min(1, this.crushAnim + dt * 0.1);
+        // أصوات سحق مولّدة بالمتصفح: هدير انكماش ثم ارتطام نهائي
+        if (!this._crushSfxStarted) {
+          this._crushSfxStarted = true;
+          if (this.engineAudio && this.engineAudio.mgr) this.engineAudio.mgr.playCrushRumble(2.6);
+        }
+        if (this.crushAnim >= 1 && !this._crushSfxFinal) {
+          this._crushSfxFinal = true;
+          if (this.engineAudio && this.engineAudio.mgr) this.engineAudio.mgr.playFinalCrush();
+        }
         this.thrustSpeed = 0;
         this.vx *= Math.exp(-3.0 * dt);
         this.vy = Math.min(45, this.vy + 30 * dt);
@@ -1757,7 +1766,7 @@
       }
 
       // صوت إنذار الضغط المعتدل الهادئ
-      if (this.occupied && depthM >= 440 && !this.isCrushed) {
+      if (this.occupied && depthM >= 495 && !this.isCrushed) {
         if (!this.warningPlaying && this.warningBuffer && this.warningAudioCtx) {
           try {
             this.warningSource = this.warningAudioCtx.createBufferSource();
@@ -2293,6 +2302,38 @@
       ctx.restore();
     }
 
+    // مراحل السحق: مقدمة ← علوي ← خلفي ← سفلي (كل مرحلة تدهس قسمها نحو الداخل)
+    _drawCrushStages(ctx, t) {
+      const stage = t * 4; // 0..4 على مدى 10 ثوانٍ
+      const dent = (pts, prog) => {
+        if (prog <= 0) return;
+        const k = Math.min(1, prog);
+        ctx.save();
+        ctx.globalAlpha = 0.55 + 0.45 * k;
+        ctx.fillStyle = '#0a0d10';
+        ctx.beginPath();
+        for (let i = 0; i < pts.length; i++) {
+          const x = pts[i][0] * (1 - 0.22 * k);
+          const y = pts[i][1] * (1 - 0.18 * k);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#39424c';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+      };
+      // 1) المقدمة (الأنف والقبة الزجاجية)
+      dent([[112, -26], [96, 0], [112, 26], [86, 20], [86, -20]], stage);
+      // 2) الجزء العلوي (برج المراقبة)
+      dent([[60, -30], [40, -58], [10, -56], [4, -30]], stage - 1);
+      // 3) الخلفي (فوهة المحرك)
+      dent([[-70, -24], [-116, -16], [-116, 16], [-70, 24]], stage - 2);
+      // 4) السفلي (البطن والزلاجات)
+      dent([[-40, 30], [60, 30], [72, 36], [-54, 36]], stage - 3);
+    }
+
     drawAdditiveEffects(ctx, waterPath) {
       ctx.save();
       ctx.globalCompositeOperation = 'screen';
@@ -2365,12 +2406,14 @@
       ctx.rotate(safeAngle);
       if (Math.cos(safeAngle) < 0) ctx.scale(1, -1);
 
-      // تحول الغواصة فوراً لكتلة معدنية كروية مسحوقة تماماً بدون اهتزاز أو رقص
+      // سحق تدريجي على 10 ثوانٍ: مقدمة ← علوي ← خلفي ← سفلي ثم كرة مكمشة
       if (this.isCrushed) {
         this.lightsOn = false;
-        this.drawCrushedMetalBall(ctx);
-        ctx.restore();
-        return;
+        if (this.crushAnim >= 1) {
+          this.drawCrushedMetalBall(ctx);
+          ctx.restore();
+          return;
+        }
       }
 
       // حساب معامل الظلام الحقيقي لضبط توهج المصابيح ومنع التوهج الزائد على السطح
@@ -2378,6 +2421,12 @@
       const depthDarkness = Math.max(0, Math.min(1.0, (depthM - 10) / 65));
       const bloomAlpha = Math.pow(depthDarkness, 1.4);
       const reflectAlpha = 0.08 + depthDarkness * 0.72;
+
+      // ضغط تدريجي للهيكل نحو الداخل أثناء السحق
+      if (this.isCrushed) {
+        const k = this.crushAnim;
+        ctx.scale(1 - 0.26 * k, 1 - 0.2 * k);
+      }
 
       // ---------------------------------------------------------------------
       // 1. الزعانف الخلفية وأسطح التوجيه (Cruciform Stabilizer Fins)
@@ -2863,6 +2912,10 @@
       ctx.moveTo(86, 16); ctx.lineTo(90, 17);
       ctx.stroke();
       ctx.restore();
+
+      if (this.isCrushed && this.crushAnim < 1) {
+        this._drawCrushStages(ctx, this.crushAnim);
+      }
 
       ctx.restore();
 
@@ -4292,6 +4345,60 @@
             gain.disconnect();
           } catch (_) {}
         };
+      } catch (_) {}
+    }
+
+    // هدير انكماش معدني مولّد (بدون ملفات صوتية)
+    playCrushRumble(dur = 2.2) {
+      if (!this.ctx || !this.unlocked || this.ctx.state !== 'running') return;
+      try {
+        const t = this.ctx.currentTime;
+        const len = Math.floor(this.ctx.sampleRate * dur);
+        const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+        const src = this.ctx.createBufferSource();
+        src.buffer = buf;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(420, t);
+        filter.frequency.exponentialRampToValueAtTime(90, t + dur);
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.5, t + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.sfxBus || this.masterGain);
+        src.start(t);
+        src.onended = () => {
+          try { src.disconnect(); filter.disconnect(); gain.disconnect(); } catch (_) {}
+        };
+      } catch (_) {}
+    }
+
+    // ارتطام نهائي عند اكتمال السحق (clang مولّد)
+    playFinalCrush() {
+      if (!this.ctx || !this.unlocked || this.ctx.state !== 'running') return;
+      try {
+        const t = this.ctx.currentTime;
+        [180, 92, 46].forEach((f, i) => {
+          const osc = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(f, t);
+          osc.frequency.exponentialRampToValueAtTime(f * 0.5, t + 0.5);
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.18 / (i + 1), t + 0.01);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+          osc.connect(g);
+          g.connect(this.sfxBus || this.masterGain);
+          osc.start(t);
+          osc.stop(t + 0.65);
+          osc.onended = () => {
+            try { osc.disconnect(); g.disconnect(); } catch (_) {}
+          };
+        });
       } catch (_) {}
     }
   }
@@ -6251,6 +6358,58 @@
     _hudText(el, val) { if (el && el.__v !== val) { el.__v = val; el.textContent = val; } }
     _hudWidth(el, val) { if (el && el.__w !== val) { el.__w = val; el.style.width = val; } }
 
+    // بطاقة تحذير بدون إيموجي + اختفاء/ظهور تدريجي كل 3 ثوانٍ عند fadeCycle
+    _applyWarnBanner(msg, fadeCycle) {
+      const b = this.subWarnBanner;
+      if (!b) return;
+      if (msg) {
+        b.classList.remove('hidden');
+        b.classList.toggle('fade-cycle', !!fadeCycle);
+        this._hudText(b, msg);
+      } else {
+        b.classList.add('hidden');
+        b.classList.remove('fade-cycle');
+      }
+    }
+
+    // صوت ألم قصير ("آه") مولّد بالمتصفح — بدون ملفات صوتية
+    _playGrunt() {
+      const mgr = this.audioManager;
+      if (!mgr || !mgr.ctx || !mgr.unlocked || mgr.ctx.state !== 'running') return;
+      const nowMs = performance.now();
+      if (this._lastGruntT && nowMs - this._lastGruntT < 1400) return;
+      this._lastGruntT = nowMs;
+      try {
+        const t = mgr.ctx.currentTime;
+        const osc = mgr.ctx.createOscillator();
+        const osc2 = mgr.ctx.createOscillator();
+        const gain = mgr.ctx.createGain();
+        const filter = mgr.ctx.createBiquadFilter();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, t);
+        osc.frequency.exponentialRampToValueAtTime(65, t + 0.28);
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(95, t);
+        osc2.frequency.exponentialRampToValueAtTime(48, t + 0.28);
+        filter.type = 'lowpass';
+        filter.frequency.value = 420;
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.2, t + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
+        osc.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain);
+        gain.connect(mgr.sfxBus || mgr.masterGain);
+        osc.start(t);
+        osc2.start(t);
+        osc.stop(t + 0.35);
+        osc2.stop(t + 0.35);
+        osc.onended = () => {
+          try { osc.disconnect(); osc2.disconnect(); filter.disconnect(); gain.disconnect(); } catch (_) {}
+        };
+      } catch (_) {}
+    }
+
     updateHUD() {
       const active = this.submarine.occupied ? this.submarine : this.fisherman;
       const camX = active ? active.x : this.camera.x;
@@ -6456,17 +6615,17 @@
           if (this.hullHpText.__c !== hullC) { this.hullHpText.__c = hullC; this.hullHpText.style.color = hullC; }
         }
 
-        // تنبيهات الخطر الحقيقية بالأيقونات والنصوص
+        // تنبيهات الضغط بدون إيموجي: 495م+ مستمر مع الصوت، 450م تدرج كل 3 ثوانٍ بلا صوت
         if (this.subWarnBanner) {
-          if (subDepthM >= 500) {
-            this.subWarnBanner.classList.remove('hidden');
-            this._hudText(this.subWarnBanner, sub.health < 30 ? '⚠ خطر سحق وشيك! اصعد فوراً' : '⚠ تم تجاوز حد الضغط! الغواصة تتضرر');
-          } else if (subDepthM >= 440) {
-            this.subWarnBanner.classList.remove('hidden');
-            this._hudText(this.subWarnBanner, '⚡ تحذير: اقتراب من حد الضغط الأقصى (500م)');
-          } else {
-            this.subWarnBanner.classList.add('hidden');
+          let msg = '';
+          let fadeCycle = false;
+          if (subDepthM >= 495) {
+            msg = sub.health < 30 ? 'خطر سحق وشيك! اصعد فوراً' : 'تم تجاوز حد الضغط! الغواصة تتضرر';
+          } else if (subDepthM >= 450) {
+            msg = 'تحذير: اقتراب من حد الضغط الأقصى (500 م)';
+            fadeCycle = true;
           }
+          this._applyWarnBanner(msg, fadeCycle);
         }
 
         // وميض حواف الشاشة الحمراء (Vignette) عند تضرر الغواصة
@@ -6475,9 +6634,42 @@
           this.damageVignette.style.opacity = vigAlpha.toFixed(2);
         }
       } else {
-        if (this.subWarnBanner) this.subWarnBanner.classList.add('hidden');
+        // تحذيرات الغواص: عمق 95م (تدرج كل 3 ثوانٍ، بدون صوت) والأكسجين المنخفض
+        if (this.subWarnBanner) {
+          let msg = '';
+          let fadeCycle = false;
+          if (this.fisherman && !this.fisherman.isDead && dM >= 95) {
+            msg = 'تحذير: اقتراب من حد العمق الآمن للغواص (100 م)';
+            fadeCycle = true;
+          } else if (curOxy <= 25 && curOxy > 0) {
+            msg = 'تحذير: الأكسجين منخفض! اصعد إلى السطح';
+            fadeCycle = true;
+          } else if (curOxy <= 0) {
+            msg = 'نفد الأكسجين! أنت تتضرر الآن';
+          }
+          this._applyWarnBanner(msg, fadeCycle);
+        }
         if (this.damageVignette) this.damageVignette.style.opacity = '0';
       }
+
+      // تعتيم تدريجي للشاشة عند نفاد أكسجين الغواص (أقصاه 0.8 — لا تسود بالكامل)
+      if (!this._oxyDarkEl) this._oxyDarkEl = document.getElementById('oxygen-darkness');
+      if (this._oxyDarkEl) {
+        let dark = 0;
+        if (!inSub && this.fisherman && !this.fisherman.inSubmarine && !this.fisherman.godMode &&
+            curOxy <= 0 && this.fisherman.health > 0) {
+          dark = Math.min(0.8, ((100 - this.fisherman.health) / 100) * 0.8);
+        }
+        const darkStr = dark.toFixed(2);
+        if (this._oxyDarkEl.__o !== darkStr) { this._oxyDarkEl.__o = darkStr; this._oxyDarkEl.style.opacity = darkStr; }
+      }
+
+      // صوت ألم اللاعب المولّد عند التضرر من نفاد الأكسجين
+      if (!inSub && this.fisherman && !this.fisherman.isDead && curOxy <= 0) {
+        const prevHp = this._lastDiverHp === undefined ? 100 : this._lastDiverHp;
+        if (this.fisherman.health < prevHp) this._playGrunt();
+      }
+      this._lastDiverHp = this.fisherman ? this.fisherman.health : 100;
     }
 
     // تم استبداله: نظام الرادار التكتيكي الشامل بدون تعليق

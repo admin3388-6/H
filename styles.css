@@ -320,6 +320,17 @@ canvas#gameCanvas {
   transition: opacity 0.25s ease-out;
 }
 
+/* تعتيم تدريجي عند نفاد أكسجين الغواص — أقصاه 0.8 فلا تسود الشاشة بالكامل */
+.oxygen-darkness {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 28%, rgba(0, 0, 0, 0.9) 100%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 48;
+  transition: opacity 0.5s ease-out;
+}
+
 /* تم استبداله: إلغاء التأثير الرمادي والتباطؤ بناءً على الطلب */
 
 .revival-modal {
@@ -637,14 +648,24 @@ canvas#gameCanvas {
   z-index: 35;
 }
 
-.hud-left-vitals-group {
+..hud-left-vitals-group {
   position: absolute;
-  top: calc(var(--safe-top) + 10px);
-  left: calc(var(--safe-left) + 10px);
+  top: calc(var(--safe-top) + 8px);
+  left: calc(var(--safe-left) + 4px); /* استغلال الفراغ الأيسر والاقتراب من الحافة */
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
   pointer-events: auto;
+}
+
+.current-mission-card {
+  width: 242px !important; /* مطابقة العرض تماماً مع بطاقة الحيوية */
+  max-width: 242px !important;
+}
+
+.current-mission-card {
+  width: 242px !important; /* مطابقة العرض تماماً مع بطاقة الحيوية */
+  max-width: 242px !important;
 }
 
 .hud-top-right-group {
@@ -957,20 +978,26 @@ canvas#gameCanvas {
   right: calc(var(--safe-right) + 125px);
 }
 
-#btn-light-toggle {
-  transition: opacity 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+#btn-light-toggle,
+#btn-jump {
+  background: url('voices/buttons3.png') no-repeat center center / 100% 100% !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  transition: opacity 0.2s ease, transform 0.08s ease;
+}
+
+#btn-light-toggle:active,
+#btn-jump:active {
+  transform: scale(0.92) !important;
 }
 
 #btn-light-toggle.is-on {
   opacity: 1 !important;
-  border-color: #ffffff !important;
-  box-shadow: 0 3px 0 #000000 !important;
 }
 
 #btn-light-toggle.is-off {
   opacity: 0.45 !important;
-  border-color: #3c424e !important;
-  box-shadow: 0 2px 0 #000000 !important;
 }
 
 .cyber-round-btn {
@@ -2648,9 +2675,11 @@ img {
 }
 
 .current-mission-card {
-  background: var(--hud-bg) !important;
-  border: 1.5px solid var(--hud-border) !important;
-  box-shadow: var(--hud-shadow) !important;
+  background: url('voices/Background2.png') no-repeat center center !important;
+  background-size: 100% 100% !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
 }
 
 .lobby-mini-ico {
@@ -2760,18 +2789,50 @@ img {
 }
 
 /* محاذاة وتباعد موحّد للكتل العلوية */
-.hud-left-vitals-group { gap: 8px; }
+.hud-left-vitals-group {
+  gap: 8px;
+  transition: transform 0.2s ease-out;
+}
+
+/* منطق التكيف الذكي للشاشات والهواتف المختلفة مع تكبير الحجم */
+.hud-left-vitals-group {
+  transform: scale(1.08); /* تكبير الحجم الأساسي ليكون بارزاً ومريحاً للعين */
+  transform-origin: top left;
+}
+
+@media (max-height: 440px) {
+  .hud-left-vitals-group {
+    transform: scale(1.02);
+    transform-origin: top left;
+  }
+}
+
+@media (max-height: 370px) {
+  .hud-left-vitals-group {
+    transform: scale(0.95);
+    transform-origin: top left;
+  }
+}
+
+@media (max-height: 320px) {
+  .hud-left-vitals-group {
+    transform: scale(0.85);
+    transform-origin: top left;
+  }
+}
 .hud-top-right-group { gap: 8px; }
 
 .env-status-strip {
-  background: var(--hud-bg) !important;
-  border: 1.5px solid var(--hud-border) !important;
+  background: url('voices/Background2.png') no-repeat center center !important;
+  background-size: 100% 100% !important;
+  border: none !important;
+  box-shadow: none !important;
   border-radius: 0 !important;
-  box-shadow: var(--hud-shadow) !important;
-  padding: 5px 12px !important;
+  padding: 7px 14px !important;
   gap: 6px !important;
-  display: flex !important;
+  display: inline-flex !important;
   align-items: center !important;
+  box-sizing: border-box;
 }
 
 .menu-actions-strip {
@@ -2856,23 +2917,22 @@ img {
 
 /* 5) الـJoystick: قاعدة سوداء موحّدة + مقبض مربع بكسل */
 .compass-base {
-  background: var(--hud-bg);
-  border: 2px solid var(--hud-border);
-  box-shadow: var(--hud-shadow);
+  background: url('voices/control1.png') no-repeat center center / contain !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .compass-reticle {
-  border-color: var(--hud-line);
-  box-shadow: none;
+  display: none !important;
 }
 
 .compass-knob {
   width: 48px;
   height: 48px;
   border-radius: 50% !important;
-  background: radial-gradient(circle at 38% 35%, #565e6b 0%, #3b424c 65%, #2a2f38 100%) !important;
-  border: 2.5px solid #8c97a5 !important;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.25) !important;
+  background: url('voices/control2.png') no-repeat center center / contain !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* 6) عتلة السرعة: نفس الرموز */
@@ -2957,11 +3017,30 @@ img {
 
 /* 8) تحذير الضغط + الإنعاش + الخريطة + التحميل */
 .sub-warning-banner {
-  background: var(--hud-red);
-  border: 2px solid var(--hud-border);
+  background: url('voices/warning1.png') no-repeat center center / 100% 100%;
+  border: none;
   border-radius: 0;
-  box-shadow: var(--hud-shadow);
+  box-shadow: none;
   color: #ffffff;
+  min-width: 260px;
+  min-height: 54px;
+  text-align: center;
+  animation: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 22px;
+  text-shadow: 1px 1px 0 #000000, -1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000;
+}
+
+/* اختفاء وظهور تدريجي كل 3 ثوانٍ (للتحذيرات غير الحرجة) */
+.sub-warning-banner.fade-cycle {
+  animation: warnFadeCycle 3s ease-in-out infinite;
+}
+
+@keyframes warnFadeCycle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
 }
 
 .revival-modal { background: rgba(0, 0, 0, 0.6); }
@@ -3014,27 +3093,52 @@ img {
    ========================================================================== */
 
 .diver-vitals-strip {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
+  position: relative;
+  width: 242px !important;
+  height: 98px !important;
+  background: url('voices/Background1.png') no-repeat center center / 100% 100% !important;
+  box-sizing: border-box;
+  margin-top: 6px;
   direction: ltr !important;
   pointer-events: auto;
+  padding: 0 !important;
+  display: block !important;
 }
 
 /* صينية الأشرطة: في أقصى اليسار مباشرة بدون قص وبدون هالات */
 .vitals-data-tray {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  position: absolute !important;
+  left: 14px !important;
+  top: 13px !important;
+  width: 140px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
   background: transparent !important;
-  clip-path: none !important;
-  -webkit-clip-path: none !important;
-  filter: none !important;
-  -webkit-filter: none !important;
-  padding: 0;
-  margin: 0;
-  border: none;
-  box-shadow: none;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.vital-track {
+  position: relative !important;
+  width: 102px !important;
+  height: 16px !important;
+  background: #0e0e10 !important;
+  border: 1.5px solid #3c3c44 !important;
+  box-shadow: inset 0 0 0 1px #000000, 0 2px 0 rgba(0, 0, 0, 0.7) !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.vital-track.press-track {
+  width: 64px !important;
+  height: 8px !important;
 }
 
 /* كل سطر شريط: الشريط وبجانبه الأيقونة يميناً */
@@ -3044,16 +3148,19 @@ img {
   gap: 5px;
 }
 
-/* شريط القياس: ارتفاع 17px لمنع قص الأرقام + عرض 105px */
+/* شريط القياس: إطار معدني مشطوف مثل التصميم */
 .vital-track {
   position: relative !important;
   width: 105px !important;
   height: 17px !important;
-  background: #0e0e10 !important;
-  border: 1.5px solid #3c3c44 !important;
-  box-shadow: inset 0 0 0 1px #000000, 0 2px 0 rgba(0, 0, 0, 0.7) !important;
+  background: #0b0b0d !important;
+  border: 2px solid #2a2a31 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.55),
+    0 2px 0 rgba(0, 0, 0, 0.7) !important;
   overflow: hidden !important;
-  border-radius: 0 !important;
+  border-radius: 3px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -3067,6 +3174,9 @@ img {
   position: relative !important;
   left: 0 !important;
   margin: 0 !important;
+  border: 1.5px solid #2a2a31 !important;
+  border-radius: 2px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 0 rgba(0, 0, 0, 0.7) !important;
 }
 
 /* تعبئة الأشرطة */
@@ -3081,11 +3191,13 @@ img {
 }
 
 .fill-hp {
-  background: linear-gradient(180deg, #ff4d4d 0%, #e02424 55%, #9e1313 100%);
+  background: linear-gradient(180deg, #ff5a5a 0%, #e11e1e 45%, #a80f0f 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .fill-oxy {
-  background: linear-gradient(180deg, #5ec7ff 0%, #209fee 55%, #0f6aa5 100%);
+  background: linear-gradient(180deg, #63d0ff 0%, #1f9fef 45%, #0d68a6 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .fill-press {
@@ -3145,18 +3257,15 @@ img {
 
 /* سطر الوزن يقع تحت شريط الضغط مباشرة ومحاذٍ له لليسار */
 .vital-weight-row {
-  position: static !important;
-  left: auto !important;
-  top: auto !important;
-  transform: none !important;
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
-  gap: 4px !important;
-  margin: 3px 0 0 0 !important;
+  gap: 3px !important;
+  margin: 0 !important;
   padding: 0 !important;
   width: auto !important;
-  height: auto !important;
+  height: 18px !important;
+  z-index: 5 !important;
 }
 
 .vital-weight-num {
@@ -3177,9 +3286,17 @@ img {
 
 /* الأزرار الثلاثة بحواف رمادية وخلفية شفافة ومقاس مكبر +20% */
 .vitals-side-actions {
+  position: absolute !important;
+    right: 15px !important; /* توسيط الأعمدة داخل المستطيل المعدني الأيمن في Background1.png */
+  top: 12px !important;
+
+  width: 24px !important;
+  height: 74px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 4px !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 0 !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -3188,28 +3305,30 @@ img {
 }
 
 .vitals-side-actions .hud-action-tab {
-  width: 28px !important;
-  height: 28px !important;
-  background: var(--hud-bg) !important;
-  border: 1.5px solid var(--hud-border) !important;
+  width: 24px !important;
+  height: 24px !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   border-radius: 0 !important;
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.6) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
   padding: 0 !important;
+  transition: transform 0.08s ease, opacity 0.08s ease;
 }
+
 .vitals-side-actions .hud-action-tab:active {
-  transform: translateY(1px);
-  box-shadow: none;
-  background: #1c1c1c;
+  transform: scale(0.85) !important;
+  opacity: 0.6 !important;
 }
 
 .vitals-side-actions .tab-ico-img {
-  width: 13px;
-  height: 13px;
-  object-fit: contain;
+  width: 17px !important;
+  height: 17px !important;
+  object-fit: contain !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8)) !important;
 }
 
 /* ==========================================================================

@@ -303,6 +303,7 @@ elements.end.classList.remove('visible');elements.narration.classList.remove('na
       <!-- تم استبداله: لوحة مؤشرات الضغط القديمة تم دمجها باللوحة التكتيكية المتطورة -->
       <div id="sub-warning-banner" class="sub-warning-banner hidden"></div>
       <div id="damage-vignette" class="damage-vignette"></div>
+      <div id="oxygen-darkness" class="oxygen-darkness"></div>
 
       <!-- عتلة تحكم الغواصة الصناعية المطابقة تماماً -->
       <div id="sub-throttle" class="industrial-throttle-panel hidden" aria-label="عتلة السرعة">
@@ -361,7 +362,7 @@ elements.end.classList.remove('visible');elements.narration.classList.remove('na
               </div>
             </div>
 
-            <!-- 3. شريط الضغط المصغر بدون نص وبجانبه أيقونة الضغط يميناً -->
+            <!-- 3. شريط الضغط المصغر وبجانبه أيقونة الضغط ثم سطر الوزن يمينه في نفس السطر -->
             <div class="vital-bar-row">
               <div class="vital-track press-track">
                 <div id="bar-vital-pressure" class="vital-fill fill-press" style="width:12%;"></div>
@@ -369,12 +370,10 @@ elements.end.classList.remove('visible');elements.narration.classList.remove('na
               <div class="vital-ico-cell">
                 <img class="vital-ico-img" src="voices/pressure.webp" alt="" onerror="this.style.opacity='0'">
               </div>
-            </div>
-
-            <!-- 4. سطر الوزن تحت شريط الضغط مباشرة -->
-            <div class="vital-weight-row">
-              <span id="weight-val-text" class="vital-weight-num">0 kg</span>
-              <img class="vital-ico-img" src="voices/kg.webp" alt="" onerror="this.style.opacity='0'">
+              <div class="vital-weight-row">
+                <span id="weight-val-text" class="vital-weight-num">0 kg</span>
+                <img class="vital-ico-img" src="voices/kg.webp" alt="" onerror="this.style.opacity='0'">
+              </div>
             </div>
           </div>
 
