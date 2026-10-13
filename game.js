@@ -97,6 +97,46 @@
   Quality.load();
 
   // =========================================================================
+  // 1.6 LOBBY SETTINGS UI — أزرار الجودة/FPS المخصصة + صناديق المعلومات
+  // =========================================================================
+  const LOBBY_QUALITY_INFO = {
+    normal: 'جودة منخفضة — أداء مناسب للأجهزة الضعيفة مع تقليل التأثيرات والجسيمات.',
+    high: 'جودة متوسطة — توازن مثالي بين الجمال والأداء على معظم الأجهزة.',
+    max: 'جودة عالية — أغنى تفاصيل وإضاءة، تحتاج أجهزة أقوى.'
+  };
+  const LOBBY_FPS_INFO = {
+    30: '30 إطاراً — توفير بطارية وثبات أكبر على الأجهزة الضعيفة.',
+    60: '60 إطاراً — سلاسة قياسية موصى بها لمعظم الأجهزة.',
+    90: '90 إطاراً — للشاشات عالية التحديث، يحتاج جهازاً قوياً.'
+  };
+
+  function updateLobbyQualityUI(level) {
+    document.querySelectorAll('#lobby-quality-opts .lobby-opt-btn').forEach((b) => {
+      b.classList.toggle('is-active', b.getAttribute('data-q') === level);
+    });
+    const info = document.getElementById('lobby-quality-info');
+    if (info) info.textContent = LOBBY_QUALITY_INFO[level] || '';
+  }
+
+  function getSavedFPS() {
+    try {
+      const v = parseInt(localStorage.getItem('marine_fps'), 10);
+      if (v === 30 || v === 60 || v === 90) return v;
+    } catch (_) {}
+    return 60;
+  }
+
+  function setFPSCap(engine, fps) {
+    try { localStorage.setItem('marine_fps', String(fps)); } catch (_) {}
+    if (engine) engine.fpsCap = fps;
+    document.querySelectorAll('#lobby-fps-opts .lobby-opt-btn').forEach((b) => {
+      b.classList.toggle('is-active', parseInt(b.getAttribute('data-fps'), 10) === fps);
+    });
+    const info = document.getElementById('lobby-fps-info');
+    if (info) info.textContent = LOBBY_FPS_INFO[fps] || '';
+  }
+
+  // =========================================================================
   // 2. VIRTUAL JOYSTICK 360° & INPUT ENGINE
   // =========================================================================
   class VirtualJoystick {
@@ -4518,11 +4558,8 @@
         }
       } catch (_) {}
 
-      // استرجاع جودة الرسومات المحفوظة لمحدد اللوبي
-      try {
-        const qSelEl = document.getElementById('lobby-quality');
-        if (qSelEl) qSelEl.value = Quality.level;
-      } catch (_) {}
+      // استرجاع جودة الرسومات المحفوظة وتمييز زرها في نافذة الإعدادات
+      try { updateLobbyQualityUI(Quality.level); } catch (_) {}
 
       // جلب ملفات الصوت مسبقاً أثناء عرض الـLobby (fetch فقط — فك الترميز بعد اللمسة)
       this.prefetchedBuffers = {};
@@ -4624,6 +4661,20 @@
       }
 
       // نوافذ اللوبي المصغرة: إعدادات / ويب / أخبار / متجر
+      let toastTimer = null;
+      const showToast = () => {
+        const toast = document.getElementById('lobby-toast');
+        if (!toast) return;
+        toast.classList.remove('hidden');
+        void toast.offsetWidth; // إجبار المتصفح على تحديث الـ DOM لتفعيل الأنيميشن
+        toast.classList.add('show');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toast.classList.remove('show');
+          setTimeout(() => toast.classList.add('hidden'), 500);
+        }, 2500);
+      };
+
       const modalPairs = [
         ['btn-lobby-settings', 'lobby-modal-settings'],
         ['btn-lobby-online', 'lobby-modal-online'],
@@ -4631,37 +4682,32 @@
         ['btn-lobby-news', 'lobby-modal-news'],
         ['btn-lobby-store', 'lobby-modal-store']
       ];
+      
       for (const [btnId, modalId] of modalPairs) {
         const b = document.getElementById(btnId);
         const m = document.getElementById(modalId);
         if (!b || !m) continue;
+        
+        // فتح النافذة وإظهار الإشعار
         const openModal = (e) => {
+          e.preventDefault();
           e.stopPropagation();
           m.classList.remove('hidden');
+          showToast();
         };
-        b.addEventListener('pointerup', openModal);
+        // نكتفي بحدث click لمنع تداخل أحداث اللمس الوهمية التي تغلق النافذة فوراً
         b.addEventListener('click', openModal);
-      }
-      const closeBtns = this.startEl.querySelectorAll('.lobby-modal-close');
-      for (const cb of closeBtns) {
-        const closeModal = (e) => {
-          e.stopPropagation();
-          const targetId = cb.getAttribute('data-close');
-          const m = targetId ? document.getElementById(targetId) : null;
-          if (m) m.classList.add('hidden');
+
+        // إغلاق النافذة عند النقر خارج البطاقة (على الخلفية المظلمة)
+        const closeModalOutside = (e) => {
+          if (e.target === m) {
+            m.classList.add('hidden');
+          }
         };
-        cb.addEventListener('pointerup', closeModal);
-        cb.addEventListener('click', closeModal);
+        m.addEventListener('click', closeModalOutside);
       }
 
-      // حفظ مستوى الصوت الرئيسي من اللوبي
-      const volInput = document.getElementById('lobby-volume');
-      if (volInput) {
-        volInput.addEventListener('input', () => {
-          const v = Math.max(0, Math.min(100, parseInt(volInput.value, 10) || 0)) / 100;
-          try { localStorage.setItem('marine_master_vol', String(v)); } catch (_) {}
-        });
-      }
+      // تم استبدال مستمع الصوت القديم بنظام المربعات الجديد
 
     }
 
@@ -5974,6 +6020,7 @@
 
       this.timeScale = 1.0;
       this.deathEffectTimer = 0;
+      this.fpsCap = getSavedFPS();
       this.isMapOpen = false;
       this.mapCanvas = document.getElementById('mapCanvas');
       this.mapCtx = this.mapCanvas ? this.mapCanvas.getContext('2d') : null;
@@ -6245,6 +6292,14 @@
         this.update(this.fixedStep);
         this.accumulator -= this.fixedStep;
       }
+
+      // حد FPS المختار من اللوبي: تخطي الرسم فقط، والفيزياء تبقى بخطوتها الثابتة
+      const capMs = 1000 / (this.fpsCap || 60);
+      if ((this.fpsCap || 60) < 120 && currentTime - (this._lastRenderT || 0) < capMs - 1) {
+        requestAnimationFrame((t) => this.loop(t));
+        return;
+      }
+      this._lastRenderT = currentTime;
 
       this.renderer.render();
       this.updateHUD();
@@ -7237,34 +7292,113 @@
           : null;
       }
 
-      // تطبيق مستوى الصوت المختار في الـLobby على خلاط الصوت الرئيسي
+      // تطبيق مستوى الصوت المحفوظ على المحرك عند بدء اللعبة
       try {
-        const savedVol = parseFloat(localStorage.getItem('marine_master_vol'));
-        if (Number.isFinite(savedVol) && gameEngine.audioManager && gameEngine.audioManager.masterGain) {
-          gameEngine.audioManager.masterGain.gain.value = Math.max(0, Math.min(1, savedVol));
+        const savedVol = localStorage.getItem('marine_master_vol');
+        if (savedVol !== null && gameEngine.audioManager && gameEngine.audioManager.masterGain) {
+          gameEngine.audioManager.masterGain.gain.value = parseFloat(savedVol);
         }
       } catch (_) {}
-      const volInputEl = document.getElementById('lobby-volume');
-      if (volInputEl && gameEngine.audioManager && gameEngine.audioManager.masterGain) {
-        volInputEl.addEventListener('input', () => {
-          const v = Math.max(0, Math.min(100, parseInt(volInputEl.value, 10) || 0)) / 100;
-          gameEngine.audioManager.masterGain.gain.value = v;
-        });
-      }
-
-      // تطبيق جودة الرسومات من اللوبي مباشرة أثناء اللعب (بدون إعادة تشغيل)
-      const qSelLive = document.getElementById('lobby-quality');
-      if (qSelLive) {
-        qSelLive.addEventListener('change', () => {
-          Quality.set(qSelLive.value);
-          if (gameEngine.fauna) gameEngine.fauna.poolSize = Quality.q.fauna;
-        });
-      }
 
       gameEngine.start();
     });
 
     // تهيئة قائمة المطور فور تحميل الصفحة لتعمل من أول لحظة بدون تكرار مستمعات
     devMenuInstance = new DevModMenu(introFlow);
+
+    // أزرار إعدادات اللوبي (جودة/FPS): تُربط مرة واحدة وتعمل قبل وبعد بدء المحرك
+    document.querySelectorAll('#lobby-quality-opts .lobby-opt-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const lvl = btn.getAttribute('data-q');
+        Quality.set(lvl);
+        updateLobbyQualityUI(lvl);
+        const eng = window.__GAME_ENGINE__;
+        if (eng && eng.fauna) eng.fauna.poolSize = Quality.q.fauna;
+      });
+    });
+    document.querySelectorAll('#lobby-fps-opts .lobby-opt-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setFPSCap(window.__GAME_ENGINE__ || null, parseInt(btn.getAttribute('data-fps'), 10) || 60);
+      });
+    });
+    updateLobbyQualityUI(Quality.level);
+    setFPSCap(null, getSavedFPS());
+
+    // نظام الصوت الجديد (Blocks) والمنطق الذكي (يعمل في اللوبي قبل بدء اللعبة)
+    const volMinus = document.getElementById('vol-minus-btn');
+    const volPlus = document.getElementById('vol-plus-btn');
+    const volMute = document.getElementById('vol-mute-btn');
+    const volIconOn = document.getElementById('vol-icon-on');
+    const volIconOff = document.getElementById('vol-icon-off');
+    const volBlocks = document.querySelectorAll('.vol-block');
+    
+    let currentVol = 5; // الافتراضي 50% (5 مربعات) — حماية الأذن عند أول تشغيل
+    try {
+      const savedVol = localStorage.getItem('marine_master_vol');
+      if (savedVol !== null) {
+        currentVol = Math.round(parseFloat(savedVol) * 10);
+      }
+    } catch (_) {}
+
+    const updateVolUI = () => {
+      // تحديث المربعات
+      volBlocks.forEach(b => {
+        const val = parseInt(b.getAttribute('data-val'), 10);
+        b.classList.toggle('active', val <= currentVol);
+      });
+      
+      // إخفاء الأزرار برمجياً لمنع التفاعل وتوفير المعالجة
+      if (volMinus) volMinus.classList.toggle('hidden-btn', currentVol === 0);
+      if (volPlus) volPlus.classList.toggle('hidden-btn', currentVol === 10);
+      
+      // تبديل أيقونة الصوت
+      if (volIconOn && volIconOff) {
+        const isMuted = currentVol === 0;
+        volIconOn.classList.toggle('hidden', isMuted);
+        volIconOff.classList.toggle('hidden', !isMuted);
+      }
+      
+      // تطبيق الصوت على المحرك إذا كان يعمل
+      const eng = window.__GAME_ENGINE__;
+      if (eng && eng.audioManager && eng.audioManager.masterGain) {
+        eng.audioManager.masterGain.gain.value = currentVol / 10;
+      }
+      
+      // الحفظ
+      try { localStorage.setItem('marine_master_vol', (currentVol / 10).toString()); } catch (_) {}
+    };
+
+    if (volMinus) {
+      volMinus.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentVol > 0) { currentVol--; updateVolUI(); }
+      });
+    }
+    
+    if (volPlus) {
+      volPlus.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentVol < 10) { currentVol++; updateVolUI(); }
+      });
+    }
+    
+    if (volMute) {
+      volMute.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentVol > 0) {
+          volMute.dataset.lastVol = currentVol;
+          currentVol = 0;
+        } else {
+          currentVol = parseInt(volMute.dataset.lastVol || '5', 10);
+          if (currentVol === 0) currentVol = 8;
+        }
+        updateVolUI();
+      });
+    }
+    
+    // تهيئة الواجهة عند البداية
+    updateVolUI();
   });
 })();

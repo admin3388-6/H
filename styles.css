@@ -1505,7 +1505,22 @@ canvas#gameCanvas {
   padding: 0 8px;
 }
 
-.lobby-modal-close { margin-top: 4px; }
+.lobby-modal-close {
+  margin-top: 4px;
+  background: url('voices/buttonlobby.png') no-repeat center center / 100% 100% !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+  min-height: 38px;
+  width: 130px;
+  align-self: center;
+  flex-shrink: 0;
+  text-shadow: 1px 1px 0 #000;
+  transition: transform 0.1s ease;
+}
+.lobby-modal-close:active {
+  transform: scale(0.92);
+}
 
 /* ---------- Loading ---------- */
 .loading-header { color: var(--paper); }
@@ -2419,22 +2434,123 @@ select,
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.9);
 }
 
-.lobby-modal { background: rgba(0, 0, 0, 0.72); }
+.lobby-modal {
+  background: radial-gradient(circle at center, rgba(5, 5, 8, 0.4) 0%, rgba(2, 2, 4, 0.9) 100%) !important;
+  backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
+}
 
 .lobby-modal-card {
-  background: #050505;
-  border: 3px solid #ffffff;
-  border-radius: 4px;
-  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.9);
+  background: url('voices/lobby5.png') no-repeat center center / 100% 100% !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  width: min(440px, 92vw) !important;
+  height: 75vh !important; /* إجبار النافذة على ارتفاع ثابت لتفعيل التمرير الداخلي */
+  max-height: 400px !important; /* منع خروج النافذة من الشاشة كلياً */
+  padding: 25px 30px 20px 30px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
 }
 
 .lobby-modal-card h2 {
   color: #ffffff;
   border-bottom: 2px solid #ffffff;
+  flex-shrink: 0;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+}
+
+.lobby-scroll-area {
+  flex: 1 1 auto;
+  min-height: 0; /* ضروري جداً لتفعيل التمرير داخل الـ Flexbox */
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  touch-action: pan-y !important;
+  overscroll-behavior: contain;
+  pointer-events: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: #3a404d #1a1c23;
+}
+
+/* إخفاء شريط التمرير بالكامل */
+.lobby-scroll-area::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
 }
 
 .lobby-modal-card p { color: #c9cdd2; }
 .lobby-setting-row { color: #ffffff; }
+
+/* ==========================================================================
+   تصميم نظام الصوت الجديد (Blocks)
+   ========================================================================== */
+.volume-control-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  padding: 6px 0;
+  height: 44px;
+  box-shadow: none;
+}
+
+.vol-icon-btn, .vol-math-btn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease;
+  flex-shrink: 0;
+}
+
+.vol-icon-btn { width: 22px; height: 22px; margin-left: 4px; }
+.vol-math-btn { width: 24px; height: 24px; font-family: var(--font-pixel); font-size: 1.2rem; }
+
+.vol-icon-btn:active, .vol-math-btn:active { transform: translateY(2px); }
+
+/* إخفاء الأزرار برمجياً مع منع التفاعل لتوفير المعالجة */
+.vol-math-btn.hidden-btn {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.vol-blocks {
+  flex: 1;
+  display: flex;
+  gap: 3px;
+  height: 18px;
+  direction: rtl; /* تعبئة من اليمين لليسار */
+}
+
+.vol-block {
+  flex: 1;
+  background: #111111;
+  border: 1px solid #222222;
+  transition: background 0.1s ease;
+}
+
+/* تدرج الألوان الأزرق بدون توهج (Glow) */
+.vol-block.active[data-val="1"] { background: #002244; border-color: #002244; }
+.vol-block.active[data-val="2"] { background: #003366; border-color: #003366; }
+.vol-block.active[data-val="3"] { background: #004488; border-color: #004488; }
+.vol-block.active[data-val="4"] { background: #0055aa; border-color: #0055aa; }
+.vol-block.active[data-val="5"] { background: #0066cc; border-color: #0066cc; }
+.vol-block.active[data-val="6"] { background: #1a8cff; border-color: #1a8cff; }
+.vol-block.active[data-val="7"] { background: #4da6ff; border-color: #4da6ff; }
+.vol-block.active[data-val="8"] { background: #80bfff; border-color: #80bfff; }
+.vol-block.active[data-val="9"] { background: #b3d9ff; border-color: #b3d9ff; }
+.vol-block.active[data-val="10"] { background: #e6f2ff; border-color: #e6f2ff; }
 
 /* 3) لوحة الحيوية — شريط زاوي أسود واحد على طراز الصورة */
 .diver-vitals-strip {
@@ -2596,7 +2712,7 @@ img {
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
-  gap: 5px !important;
+  gap: 16px !important;
 }
 
 /* البورتريه: صندوق أبيض يطفو فوق الحافة اليسرى للوح */
@@ -3537,4 +3653,188 @@ img {
   color: #000000;
   font-weight: 700;
   border-color: #ffffff;
+}
+
+/* ==========================================================================
+   LOBBY v11 — بطاقات بيضاء بحواف فرشاة صغيرة تحت شعار THE DEEP (أعلى اليسار)
+   ========================================================================== */
+
+/* تعتيم خفيف جداً خلف الأزرار فقط — الشعار والخلفية يبقيان نظيفين */
+#start-overlay.lobby-screen::before {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.30) 0%, rgba(0, 0, 0, 0) 35%) !important;
+}
+
+/* عمود البطاقات: أعلى اليسار تحت الشعار مباشرة */
+.lobby-menu {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  padding: 0 !important;
+  gap: 6px !important;
+  width: min(150px, 18vw) !important;
+  top: 15% !important;
+  left: calc(var(--safe-left) + 7%) !important;
+  right: auto !important;
+  transform: none !important;
+  align-items: stretch !important;
+}
+
+/* البطاقة البيضاء: خلفية فرشاة بحواف غير منتظمة عبر Mask */
+.lobby-start-btn,
+.lobby-btn-secondary {
+  background: url('voices/buttonlobby.png') no-repeat center center / 100% 100% !important;
+  border: none !important;
+  box-shadow: none !important;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.45)) !important;
+  color: #ffffff !important;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 12px 16px;
+  text-align: center;
+  letter-spacing: 0.3px;
+  text-shadow: 1px 1px 0 #000;
+  transition: transform 0.1s ease;
+  min-height: 42px;
+}
+
+.lobby-start-btn::before,
+.lobby-btn-secondary::before {
+  display: none !important;
+}
+
+.lobby-start-btn { font-size: 0.62rem; }
+
+.lobby-btn-secondary:active,
+.lobby-start-btn:active {
+  transform: scale(0.95);
+}
+
+/* بطاقة الأيقونات: أزرار منفصلة */
+.lobby-mini-row {
+  position: relative;
+  isolation: isolate;
+  margin: 0 6px;
+  gap: 10px;
+  padding: 7px 10px;
+  justify-content: center;
+}
+
+.lobby-mini-btn {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  min-height: 42px;
+  min-width: 42px;
+  padding: 0;
+  transition: transform 0.1s ease;
+}
+
+#btn-lobby-web { background: url('voices/buttonweb.webp') no-repeat center center / 100% 100% !important; }
+#btn-lobby-news { background: url('voices/buttonnwse.webp') no-repeat center center / 100% 100% !important; }
+#btn-lobby-store { background: url('voices/buttonshop.webp') no-repeat center center / 100% 100% !important; }
+
+.lobby-mini-btn:active { transform: scale(0.92); }
+
+/* سطر الحالة رمادي هادئ أسفل البطاقة */
+.lobby-status {
+  color: #7d8288 !important;
+  margin-top: 8px;
+}
+
+/* ==========================================================================
+   LOBBY SETTINGS v2 — أزرار خيارات + صناديق معلومات + شريط صوت سماوي
+   ========================================================================== */
+.lobby-modal-card {
+  width: min(360px, 86vw);
+  gap: 14px;
+}
+
+.lobby-setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lobby-setting-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #e8ecf1;
+}
+
+.lobby-opt-row {
+  display: flex;
+  gap: 6px;
+}
+
+.lobby-opt-btn {
+  flex: 1;
+  min-height: 38px;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: transform 0.1s ease, filter 0.15s ease;
+  filter: grayscale(1) opacity(0.5); /* الزر غير المفعل يكون باهت */
+  color: transparent !important; /* إخفاء النص نهائياً لتبقى الصورة فقط */
+  text-shadow: none !important;
+}
+
+.lobby-opt-btn:active {
+  transform: scale(0.92);
+}
+
+.lobby-opt-btn.is-active {
+  filter: grayscale(0) opacity(1); /* الزر المفعل يكون ملون وواضح */
+  transform: scale(1.05);
+}
+
+/* صور أزرار الجودة */
+.lobby-opt-btn[data-q="normal"] { background: url('voices/low.jpg') no-repeat center center / contain !important; }
+.lobby-opt-btn[data-q="high"] { background: url('voices/normal.jpg') no-repeat center center / contain !important; }
+.lobby-opt-btn[data-q="max"] { background: url('voices/high.jpg') no-repeat center center / contain !important; }
+
+/* صور أزرار الـ FPS */
+.lobby-opt-btn[data-fps="30"] { background: url('voices/30.png') no-repeat center center / contain !important; }
+.lobby-opt-btn[data-fps="60"] { background: url('voices/60.png') no-repeat center center / contain !important; }
+.lobby-opt-btn[data-fps="90"] { background: url('voices/90.png') no-repeat center center / contain !important; }
+
+.lobby-info-box {
+  background: transparent !important;
+  border: none !important;
+  padding: 4px 10px;
+  font-size: 0.6rem;
+  line-height: 1.5;
+  color: #8fd8ff;
+  text-align: center;
+  min-height: auto;
+  text-shadow: 1px 1px 0 #000;
+}
+
+/* تم استبدال شريط الصوت القديم بنظام المربعات (Blocks) */
+/* تصميم إشعار التوجيه (Toast) */
+.lobby-toast {
+  position: absolute;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(5, 5, 5, 0.85);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  color: #ffffff;
+  padding: 12px 20px;
+  font-size: 0.65rem;
+  font-family: 'Pixel AE', 'Press Start 2P', 'Cairo', sans-serif;
+  text-align: center;
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.85);
+  white-space: nowrap;
+}
+
+.lobby-toast.show {
+  opacity: 0.85;
 }
