@@ -16,7 +16,7 @@
   <!-- شاشات التدفق الأولي: ضغطة البدء، فيديو المقدمة، وشريط التحميل -->
   <div id="intro-flow" class="intro-flow-layer">
     <div id="prestart-overlay" class="flow-screen prestart-screen">
-      <p class="prestart-text">اضغط في أي مكان للبدأ</p>
+      <p class="prestart-text">اللعبة تحتاج تجهيزاً أولاً<br>اضغط في أي مكان للبدأ</p>
     </div>
     <div id="start-overlay" class="flow-screen lobby-screen hidden">
       <img id="lobbyBg" src="voices/lobby.gif" alt="">
@@ -37,27 +37,14 @@
         <div class="lobby-modal-card">
           <div class="lobby-scroll-area">
             <h2>الإعدادات</h2>
-            <div class="lobby-setting-group">
-              <span class="lobby-setting-label">مستوى الصوت الرئيسي</span>
-              <div class="volume-control-wrapper">
-                <button id="vol-mute-btn" class="vol-icon-btn" type="button" aria-label="كتم الصوت">
+            <div class="lobby-setting-group" id="sound-system-group">
+              <span class="lobby-setting-label">نظام الصوت</span>
+              <div class="sound-master-row">
+                <button id="vol-mute-btn" class="vol-icon-btn" type="button" aria-label="كتم / إلغاء كتم الصوت">
                   <svg id="vol-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
                   <svg id="vol-icon-off" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
                 </button>
-                <button id="vol-minus-btn" class="vol-math-btn" type="button">−</button>
-                <div id="vol-blocks-container" class="vol-blocks" dir="rtl">
-                  <div class="vol-block" data-val="1"></div>
-                  <div class="vol-block" data-val="2"></div>
-                  <div class="vol-block" data-val="3"></div>
-                  <div class="vol-block" data-val="4"></div>
-                  <div class="vol-block" data-val="5"></div>
-                  <div class="vol-block" data-val="6"></div>
-                  <div class="vol-block" data-val="7"></div>
-                  <div class="vol-block" data-val="8"></div>
-                  <div class="vol-block" data-val="9"></div>
-                  <div class="vol-block" data-val="10"></div>
-                </div>
-                <button id="vol-plus-btn" class="vol-math-btn" type="button">+</button>
+                <span class="sound-master-label">كتم / إلغاء كتم كل الأصوات</span>
               </div>
             </div>
 
@@ -131,6 +118,7 @@
             <div class="loading-segments"></div>
           </div>
         </div>
+        <div id="loading-status" class="loading-status"></div>
       </div>
     </div>
     <div id="comic-overlay" class="comic-overlay-layer hidden">

@@ -610,6 +610,14 @@ canvas#gameCanvas {
   );
 }
 
+.loading-status {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #9aa0a6;
+  text-align: center;
+  min-height: 1em;
+}
+
 /* تم استبداله: زر الخروج */
 
 /* قواعد الإخفاء العامة الصارمة */
@@ -2535,8 +2543,8 @@ select,
 
 .vol-block {
   flex: 1;
-  background: #111111;
-  border: 1px solid #222222;
+  background: #101216;
+  border: 1px solid #3c424e;
   transition: background 0.1s ease;
 }
 
@@ -2551,6 +2559,25 @@ select,
 .vol-block.active[data-val="8"] { background: #80bfff; border-color: #80bfff; }
 .vol-block.active[data-val="9"] { background: #b3d9ff; border-color: #b3d9ff; }
 .vol-block.active[data-val="10"] { background: #e6f2ff; border-color: #e6f2ff; }
+
+/* صف زر الكتم العام داخل نظام الصوت */
+.sound-master-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sound-master-row .vol-icon-btn {
+  width: 30px;
+  height: 30px;
+}
+
+.sound-master-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #e8ecf1;
+  text-shadow: 1px 1px 0 #000000;
+}
 
 /* 3) لوحة الحيوية — شريط زاوي أسود واحد على طراز الصورة */
 .diver-vitals-strip {
@@ -3811,6 +3838,34 @@ img {
   text-align: center;
   min-height: auto;
   text-shadow: 1px 1px 0 #000;
+}
+
+/* صفوف قنوات الصوت المستقلة — نفس لغة التصميم البكسلية للنوافذ */
+.vol-channel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vol-ch-label {
+  width: 92px;
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #e8ecf1;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.vol-channel-ctrl {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vol-ch-blocks {
+  height: 14px;
+  gap: 2px;
 }
 
 /* تم استبدال شريط الصوت القديم بنظام المربعات (Blocks) */

@@ -4293,6 +4293,26 @@
   // =========================================================================
   // 6.4 UNIFIED AUDIO MANAGER & MIXER (إدارة مركزية موحدة تمنع التسريب والتقطيع)
   // =========================================================================
+
+  // مستويات القنوات الصوتية المستقلة (0-10) — تُحفظ في localStorage وتبدأ من 50%
+  const CHANNEL_DEFAULTS = { music: 5, game: 5, ambient: 5, player: 5, animals: 5, nature: 5 };
+  const ChannelVols = (() => {
+    const v = Object.assign({}, CHANNEL_DEFAULTS);
+    try {
+      const raw = JSON.parse(localStorage.getItem('marine_channels'));
+      if (raw && typeof raw === 'object') {
+        for (const k of Object.keys(CHANNEL_DEFAULTS)) {
+          const n = Math.round(Number(raw[k]));
+          if (Number.isFinite(n)) v[k] = Math.max(0, Math.min(10, n));
+        }
+      }
+    } catch (_) {}
+    return v;
+  })();
+  function saveChannelVols() {
+    try { localStorage.setItem('marine_channels', JSON.stringify(ChannelVols)); } catch (_) {}
+  }
+
   class AudioManager {
     constructor() {
       this.ctx = null;
@@ -4309,23 +4329,48 @@
       try {
         const AC = window.AudioContext || window.webkitAudioContext;
         this.ctx = new AC();
-        this.masterGain = this.ctx.createGain();
-        this.masterGain.gain.value = 0.85;
-        this.masterGain.connect(this.ctx.destination);
-
-        // قنوات التحكم الفرعية (Mixer Busses)
-        this.subBus = this.ctx.createGain();
-        this.subBus.gain.value = 0.9;
-        this.subBus.connect(this.masterGain);
-
-        this.ambientBus = this.ctx.createGain();
-        this.ambientBus.gain.value = 0.75;
-        this.ambientBus.connect(this.masterGain);
-
-        this.sfxBus = this.ctx.createGain();
-        this.sfxBus.gain.value = 0.6;
-        this.sfxBus.connect(this.masterGain);
+        this.buildMixer();
       } catch (_) { this.ctx = null; }
+    }
+
+    // خلاط الصوت الكامل: Master + 6 قنوات مستقلة (موسيقى/لعبة/محيط/لاعب/حيوانات/طبيعة)
+    buildMixer() {
+      if (!this.ctx) return;
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = 0.85;
+      this.masterGain.connect(this.ctx.destination);
+
+      this.musicGain = this.ctx.createGain();
+      this.gameGain = this.ctx.createGain();
+      this.ambienceGain = this.ctx.createGain();
+      this.playerGain = this.ctx.createGain();
+      this.animalsGain = this.ctx.createGain();
+      this.natureGain = this.ctx.createGain();
+      this.musicGain.gain.value = ChannelVols.music / 10;
+      this.gameGain.gain.value = ChannelVols.game / 10;
+      this.ambienceGain.gain.value = ChannelVols.ambient / 10;
+      this.playerGain.gain.value = ChannelVols.player / 10;
+      this.animalsGain.gain.value = ChannelVols.animals / 10;
+      this.natureGain.gain.value = ChannelVols.nature / 10;
+      this.musicGain.connect(this.masterGain);
+      this.gameGain.connect(this.masterGain);
+      this.ambienceGain.connect(this.masterGain);
+      this.playerGain.connect(this.masterGain);
+      this.animalsGain.connect(this.masterGain);
+      this.natureGain.connect(this.masterGain);
+
+      // قنوات التحكم الفرعية (Mixer Busses) موصولة بقنواتها المخصصة
+      this.subBus = this.ctx.createGain();
+      this.subBus.gain.value = 0.9;
+      this.subBus.connect(this.playerGain);
+
+      this.ambientBus = this.ctx.createGain();
+      this.ambientBus.gain.value = 0.75;
+      this.ambientBus.connect(this.ambienceGain);
+
+      this.sfxBus = this.ctx.createGain();
+      this.sfxBus.gain.value = 0.6;
+      this.sfxBus.connect(this.gameGain);
     }
 
     unlock() {
@@ -4526,6 +4571,213 @@
 
 
 
+
+
+  // =========================================================================
+  // 6.4b SMART CDN PRELOADER (تحقق سريع + تحميل متوازٍ + كاش دائم + إعادة محاولة تلقائية)
+  // =========================================================================
+  const ASSET_CACHE_NAME = 'marine-assets-v2';
+
+  // ====== الإعدادات: غيّر الرابط فقط بعد رفع الموارد على Cloudflare ======
+  const CDN_BASE = 'https://skydata-bond.brxpara.workers.dev/'; // رابط Cloudflare Workers الخاص بك
+  const USE_CDN = true; // اجعلها false للتشغيل المحلي فقط بدون إنترنت
+  // ========================================================================
+  const CDN_READY = USE_CDN && CDN_BASE.indexOf('YOUR-SITE') === -1;
+  const VERSION_URL = CDN_BASE + 'version.json';
+
+  // كل موارد اللعبة (أصوات + صور واجهة + خطوط) — تُحمَّل مرة واحدة وتُخزَّن للأبد
+  const ASSET_MANIFEST = [
+    'voices/bluewhale.mp3',
+    'voices/divingsound.mp3',
+    'voices/warning.mp3',
+    'voices/Unknown.mp3',
+    'voices/lobby.gif',
+    'voices/lobby5.png',
+    'voices/buttonlobby.png',
+    'voices/buttonweb.webp',
+    'voices/buttonnwse.webp',
+    'voices/buttonshop.webp',
+    'voices/low.jpg',
+    'voices/normal.jpg',
+    'voices/high.jpg',
+    'voices/30.png',
+    'voices/60.png',
+    'voices/90.png',
+    'voices/heart.webp',
+    'voices/submarine.webp',
+    'voices/O2.webp',
+    'voices/pressure.webp',
+    'voices/kg.webp',
+    'voices/Inventory.webp',
+    'voices/map.webp',
+    'voices/gear.webp',
+    'voices/task.webp',
+    'voices/day.webp',
+    'voices/night.webp',
+    'voices/storm.webp',
+    'voices/snow.webp',
+    'voices/cloudy.webp',
+    'voices/heat.webp',
+    'voices/depth.webp',
+    'voices/PlayerCircle.png',
+    'voices/SubmarineCircle.png',
+    'voices/Buttons3.png',
+    'voices/Background1.png',
+    'voices/Background2.png',
+    'voices/warning1.png',
+    'voices/control1.png',
+    'voices/control2.png',
+    'voices/interaction.webp',
+    'voices/searchlight.webp',
+    'voices/jump.webp',
+    'voices/black.png',
+    'voices/PixelAE.ttf'
+  ];
+
+  // رقم إصدار البناء: يُقرأ تلقائياً من ?v= في وسوم game.js و styles.css
+  function getBuildVersion() {
+    let v = '';
+    try {
+      document.querySelectorAll('script[src], link[rel="stylesheet"]').forEach((el) => {
+        const u = el.src || el.href || '';
+        const m = u.match(/[?&]v=([^&]+)/);
+        if (m) v += m[1] + '+';
+      });
+    } catch (_) {}
+    return v || String(ASSET_MANIFEST.length);
+  }
+
+  // تخزين مؤقت دائم (Cache API) — كل ملف يُحمَّل مرة واحدة فقط عبر الشبكة
+  const SmartLoader = {
+    store: null,
+    async init() {
+      if (!('caches' in window)) return;
+      try { this.store = await caches.open(ASSET_CACHE_NAME); } catch (_) { this.store = null; }
+    },
+    async get(url) {
+      if (!this.store) return null;
+      try { return await this.store.match(url); } catch (_) { return null; }
+    },
+    async put(url, res) {
+      if (!this.store || !res || !res.ok) return;
+      try { await this.store.put(url, res.clone()); } catch (_) {}
+    }
+  };
+
+  // جلب مع إعادة محاولة تلقائية (تدرج زمني) ومهلة لكل محاولة
+  async function fetchWithRetry(url, tries, timeoutMs) {
+    let lastErr = null;
+    for (let i = 0; i < tries; i++) {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), timeoutMs || 15000);
+        const r = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
+        clearTimeout(timer);
+        if (r.ok) return r;
+        lastErr = new Error('HTTP ' + r.status);
+      } catch (e) { lastErr = e; }
+      if (i < tries - 1) await new Promise((res) => setTimeout(res, 400 * (i + 1)));
+    }
+    throw lastErr;
+  }
+
+  // تنفيذ متوازٍ بست قنوات في نفس الوقت (Parallel Pool)
+  async function runPool(items, worker, concurrency) {
+    const queue = items.slice();
+    const lanes = Array.from({ length: Math.min(concurrency || 6, queue.length) }, async () => {
+      while (queue.length) {
+        const it = queue.shift();
+        await worker(it);
+      }
+    });
+    await Promise.all(lanes);
+  }
+
+  // رابط المورد: من CDN إن كان جاهزاً، وإلا المسار المحلي
+  function assetUrl(file) {
+    return CDN_READY ? (CDN_BASE + file) : ('./' + file);
+  }
+
+  // النظام الذكي بالترتيب: تحقق سريع ← كاش فوري للعائد ← تحميل متوازٍ للناقص/المحدّث ← إنقاذ تلقائي
+  async function prepareAssets(onProgress, onStatus) {
+    await SmartLoader.init();
+    onStatus(location.protocol === 'https:' ? 'اتصال آمن' : 'وضع محلي');
+    onProgress(2);
+
+    // 1) التحقق السريع: طلب واحد خفيف فقط (version.json) لمقارنة الإصدار مع الخادم
+    const localVersion = getBuildVersion();
+    let serverVersion = null;
+    if (CDN_READY && navigator.onLine !== false) {
+      try {
+        const r = await fetchWithRetry(VERSION_URL + '?t=' + Date.now(), 2, 4000);
+        serverVersion = (await r.json()).version || null;
+      } catch (_) {
+        onStatus('الخادم غير متاح — العمل من الذاكرة/المحلي');
+      }
+    }
+    const target = serverVersion || localVersion;
+    let stored = null;
+    try { stored = localStorage.getItem('marine_assets_ver'); } catch (_) {}
+
+    // 2) زائر عائد: تحقق فوري من اكتمال الكاش — بلا أي تنزيل إن لم يوجد تحديث معلن
+    const cacheComplete = async () => {
+      if (!SmartLoader.store) return false;
+      for (const f of ASSET_MANIFEST) {
+        if (!(await SmartLoader.get(assetUrl(f)))) return false;
+      }
+      return true;
+    };
+    if (await cacheComplete() && (!serverVersion || stored === target)) {
+      onStatus('كل الموارد جاهزة');
+      onProgress(100);
+      return true;
+    }
+
+    // 3) تحميل متوازٍ: الناقص أو المُحدَّث فقط، مع رجوع تلقائي للملف المحلي عند فشل الشبكة
+    onStatus('تجهيز الموارد...');
+    const fresh = !!(serverVersion && stored !== target);
+    const failed = [];
+    let done = 0;
+    const report = () => onProgress(Math.min(99, 2 + Math.round((done / ASSET_MANIFEST.length) * 97)));
+    report();
+    await runPool(ASSET_MANIFEST, async (file) => {
+      const key = assetUrl(file);
+      try {
+        let res = await SmartLoader.get(key);
+        if (!res || fresh) {
+          try {
+            res = await fetchWithRetry(key, 3, 15000);
+          } catch (_) {
+            res = await fetchWithRetry('./' + file, 2, 10000); // رجوع تلقائي للمحلي
+          }
+          await SmartLoader.put(key, res);
+        }
+      } catch (_) { failed.push(file); }
+      done++;
+      report();
+    }, 6);
+
+    // 4) جولة إنقاذ أخيرة للفاشل من المسار المحلي قبل إعلان الخطأ
+    for (const file of failed.slice()) {
+      try {
+        const res = await fetchWithRetry('./' + file, 2, 10000);
+        await SmartLoader.put(assetUrl(file), res);
+        failed.splice(failed.indexOf(file), 1);
+      } catch (_) {}
+    }
+
+    if (failed.length > 0) {
+      onStatus('تعذر تجهيز ' + failed.length + ' مورد');
+      return false; // لا دخول للعبة قبل اكتمال كل الموارد
+    }
+    try {
+      localStorage.setItem('marine_assets_ver', target);
+      localStorage.setItem('marine_assets_done', '1');
+    } catch (_) {}
+    onStatus('اكتمل التجهيز');
+    onProgress(100);
+    return true;
+  }
 
 
   // =========================================================================
@@ -4765,7 +5017,7 @@
 
 
     async runPreloader() {
-      this.setProgress(10);
+      this.setProgress(2);
       if (!this.audioCtx) {
         const AC = window.AudioContext || window.webkitAudioContext;
         this.audioCtx = AC ? new AC() : null;
@@ -4773,6 +5025,19 @@
       const audioCtx = this.audioCtx;
       if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume().catch(() => {});
+      }
+
+      // المرحلة 1: التحقق السريع ثم تجهيز كل الموارد — الشريط يتقدم حتى 85%
+      const statusEl = document.getElementById('loading-status');
+      const setLoadStatus = (t) => { if (statusEl) statusEl.textContent = t; };
+      let assetsOk = await prepareAssets((p) => this.setProgress(2 + Math.round(p * 0.83)), setLoadStatus);
+      if (!assetsOk) {
+        setLoadStatus('إعادة المحاولة تلقائياً...');
+        assetsOk = await prepareAssets((p) => this.setProgress(2 + Math.round(p * 0.83)), setLoadStatus);
+        if (!assetsOk) {
+          setLoadStatus('خطأ في الشبكة — تحقق من الاتصال ثم أعد فتح اللعبة');
+          return; // لا بدء للعبة قبل اكتمال الموارد
+        }
       }
 
       let loaded = 0;
@@ -4784,8 +5049,19 @@
           try {
             const cachedBuf = await audioCtx.decodeAudioData(this.prefetchedBuffers[key]);
             loaded++;
-            this.setProgress(20 + (loaded / TOTAL_SOUNDS) * 70);
+            this.setProgress(85 + Math.round((loaded / TOTAL_SOUNDS) * 14));
             return cachedBuf;
+          } catch (_) { /* نكمل بالتحميل العادي */ }
+        }
+        // الذاكرة الذكية: صوت جاهز مخزّن من زيارة سابقة — يُفك ترميزه دون إعادة قراءة الملف
+        const cachedRes = await SmartLoader.get(assetUrl(url)) || await SmartLoader.get(url) || await SmartLoader.get('./' + url);
+        if (cachedRes && audioCtx) {
+          try {
+            const ab = await cachedRes.arrayBuffer();
+            const buf = await audioCtx.decodeAudioData(ab);
+            loaded++;
+            this.setProgress(85 + Math.round((loaded / TOTAL_SOUNDS) * 14));
+            return buf;
           } catch (_) { /* نكمل بالتحميل العادي */ }
         }
         const controller = new AbortController();
@@ -4830,7 +5106,7 @@
           clearTimeout(timeoutId);
           // الشريط يتحرك مع انتهاء كل ملف صوتي بدل القفز دفعة واحدة
           loaded++;
-          this.setProgress(20 + (loaded / TOTAL_SOUNDS) * 70);
+          this.setProgress(85 + Math.round((loaded / TOTAL_SOUNDS) * 14));
         }
       };
 
@@ -4847,7 +5123,7 @@
       this.preloadedAudio.diving = audioResults[1];
       this.preloadedAudio.warning = audioResults[2];
       this.preloadedAudio.unknown = audioResults[3];
-      this.setProgress(90);
+      this.setProgress(99);
 
       await new Promise((r) => setTimeout(r, 180));
       this.setProgress(100);
@@ -4972,7 +5248,7 @@
       if (this.ready || this.loadFailed) { this._resume(); return; }
       this.mgr = sharedAudioMgr || null;
       this.audio = (this.mgr && this.mgr.ctx) ? this.mgr.ctx : null;
-      this.master = (this.mgr && this.mgr.ambientBus) ? this.mgr.ambientBus : null;
+      this.master = (this.mgr && (this.mgr.animalsGain || this.mgr.ambientBus)) ? (this.mgr.animalsGain || this.mgr.ambientBus) : null;
 
       if (this.audio && !this.master) {
         this.master = this.audio.createGain();
@@ -5210,7 +5486,7 @@
       if (this.ready || this.failed) { this.resume(); return; }
       this.mgr = sharedAudioMgr || null;
       this.audio = (this.mgr && this.mgr.ctx) ? this.mgr.ctx : (sharedAudioMgr && sharedAudioMgr.destination ? sharedAudioMgr : null);
-      this.outNode = (this.mgr && this.mgr.ambientBus) ? this.mgr.ambientBus : null;
+      this.outNode = (this.mgr && (this.mgr.ambienceGain || this.mgr.ambientBus)) ? (this.mgr.ambienceGain || this.mgr.ambientBus) : null;
       if (!this.audio) {
         try {
           const AC = window.AudioContext || window.webkitAudioContext;
@@ -5356,7 +5632,7 @@
         this.gainNode.gain.value = 0.0001;
         this.srcNode.connect(this.filterNode);
         this.filterNode.connect(this.gainNode);
-        this.gainNode.connect((this.mgr && this.mgr.ambientBus) || this.ctx.destination);
+        this.gainNode.connect((this.mgr && (this.mgr.natureGain || this.mgr.ambientBus)) || this.ctx.destination);
         this.srcNode.start();
         this.playing = true;
       } catch (_) { this.playing = false; }
@@ -7245,34 +7521,20 @@
         gameEngine.audioManager.ctx = preloadedAudioCtx;
         gameEngine.audioManager.unlocked = true;
         try {
-          gameEngine.audioManager.masterGain = preloadedAudioCtx.createGain();
-          gameEngine.audioManager.masterGain.gain.value = 0.85;
-          gameEngine.audioManager.masterGain.connect(preloadedAudioCtx.destination);
-
-          gameEngine.audioManager.subBus = preloadedAudioCtx.createGain();
-          gameEngine.audioManager.subBus.gain.value = 0.9;
-          gameEngine.audioManager.subBus.connect(gameEngine.audioManager.masterGain);
-
-          gameEngine.audioManager.ambientBus = preloadedAudioCtx.createGain();
-          gameEngine.audioManager.ambientBus.gain.value = 0.75;
-          gameEngine.audioManager.ambientBus.connect(gameEngine.audioManager.masterGain);
-
-          gameEngine.audioManager.sfxBus = preloadedAudioCtx.createGain();
-          gameEngine.audioManager.sfxBus.gain.value = 0.6;
-          gameEngine.audioManager.sfxBus.connect(gameEngine.audioManager.masterGain);
+          gameEngine.audioManager.buildMixer();
         } catch (_) {}
       }
 
       if (preloadedAudio.whale && gameEngine.whaleAudio) {
         gameEngine.whaleAudio.buffer = preloadedAudio.whale;
         gameEngine.whaleAudio.audio = preloadedAudioCtx;
-        gameEngine.whaleAudio.master = gameEngine.audioManager ? gameEngine.audioManager.ambientBus : null;
+        gameEngine.whaleAudio.master = gameEngine.audioManager ? (gameEngine.audioManager.animalsGain || gameEngine.audioManager.ambientBus) : null;
         gameEngine.whaleAudio.ready = true;
       }
       if (preloadedAudio.diving && gameEngine.diveAudio) {
         gameEngine.diveAudio.buffer = preloadedAudio.diving;
         gameEngine.diveAudio.audio = preloadedAudioCtx;
-        gameEngine.diveAudio.outNode = gameEngine.audioManager ? gameEngine.audioManager.ambientBus : null;
+        gameEngine.diveAudio.outNode = gameEngine.audioManager ? (gameEngine.audioManager.ambienceGain || gameEngine.audioManager.ambientBus) : null;
         gameEngine.diveAudio.ready = true;
       }
 
@@ -7288,15 +7550,14 @@
         gameEngine.fauna.unknownBuffer = preloadedAudio.unknown;
         gameEngine.fauna.unknownAudioCtx = preloadedAudioCtx;
         gameEngine.fauna.unknownBus = gameEngine.audioManager
-          ? gameEngine.audioManager.sfxBus
+          ? (gameEngine.audioManager.animalsGain || gameEngine.audioManager.sfxBus)
           : null;
       }
 
-      // تطبيق مستوى الصوت المحفوظ على المحرك عند بدء اللعبة
+      // تطبيق حالة الكتم المحفوظة على المحرك عند بدء اللعبة
       try {
-        const savedVol = localStorage.getItem('marine_master_vol');
-        if (savedVol !== null && gameEngine.audioManager && gameEngine.audioManager.masterGain) {
-          gameEngine.audioManager.masterGain.gain.value = parseFloat(savedVol);
+        if (masterMuted && gameEngine.audioManager && gameEngine.audioManager.masterGain) {
+          gameEngine.audioManager.masterGain.gain.value = 0;
         }
       } catch (_) {}
 
@@ -7326,79 +7587,105 @@
     updateLobbyQualityUI(Quality.level);
     setFPSCap(null, getSavedFPS());
 
-    // نظام الصوت الجديد (Blocks) والمنطق الذكي (يعمل في اللوبي قبل بدء اللعبة)
-    const volMinus = document.getElementById('vol-minus-btn');
-    const volPlus = document.getElementById('vol-plus-btn');
+    // زر الكتم العام: كتم/إلغاء كتم فقط — لا يحرّك مربعات القنوات ولا يلعب بقيمها
     const volMute = document.getElementById('vol-mute-btn');
     const volIconOn = document.getElementById('vol-icon-on');
     const volIconOff = document.getElementById('vol-icon-off');
-    const volBlocks = document.querySelectorAll('.vol-block');
-    
-    let currentVol = 5; // الافتراضي 50% (5 مربعات) — حماية الأذن عند أول تشغيل
+
+    let masterMuted = false;
     try {
-      const savedVol = localStorage.getItem('marine_master_vol');
-      if (savedVol !== null) {
-        currentVol = Math.round(parseFloat(savedVol) * 10);
-      }
+      masterMuted = localStorage.getItem('marine_master_muted') === '1';
     } catch (_) {}
 
     const updateVolUI = () => {
-      // تحديث المربعات
-      volBlocks.forEach(b => {
-        const val = parseInt(b.getAttribute('data-val'), 10);
-        b.classList.toggle('active', val <= currentVol);
-      });
-      
-      // إخفاء الأزرار برمجياً لمنع التفاعل وتوفير المعالجة
-      if (volMinus) volMinus.classList.toggle('hidden-btn', currentVol === 0);
-      if (volPlus) volPlus.classList.toggle('hidden-btn', currentVol === 10);
-      
-      // تبديل أيقونة الصوت
       if (volIconOn && volIconOff) {
-        const isMuted = currentVol === 0;
-        volIconOn.classList.toggle('hidden', isMuted);
-        volIconOff.classList.toggle('hidden', !isMuted);
+        volIconOn.classList.toggle('hidden', masterMuted);
+        volIconOff.classList.toggle('hidden', !masterMuted);
       }
-      
-      // تطبيق الصوت على المحرك إذا كان يعمل
       const eng = window.__GAME_ENGINE__;
       if (eng && eng.audioManager && eng.audioManager.masterGain) {
-        eng.audioManager.masterGain.gain.value = currentVol / 10;
+        eng.audioManager.masterGain.gain.value = masterMuted ? 0 : 1;
       }
-      
-      // الحفظ
-      try { localStorage.setItem('marine_master_vol', (currentVol / 10).toString()); } catch (_) {}
+      try { localStorage.setItem('marine_master_muted', masterMuted ? '1' : '0'); } catch (_) {}
     };
 
-    if (volMinus) {
-      volMinus.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (currentVol > 0) { currentVol--; updateVolUI(); }
-      });
-    }
-    
-    if (volPlus) {
-      volPlus.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (currentVol < 10) { currentVol++; updateVolUI(); }
-      });
-    }
-    
     if (volMute) {
       volMute.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (currentVol > 0) {
-          volMute.dataset.lastVol = currentVol;
-          currentVol = 0;
-        } else {
-          currentVol = parseInt(volMute.dataset.lastVol || '5', 10);
-          if (currentVol === 0) currentVol = 8;
-        }
+        masterMuted = !masterMuted;
         updateVolUI();
       });
     }
-    
+
     // تهيئة الواجهة عند البداية
     updateVolUI();
+
+    // ============ قنوات الصوت المستقلة: موسيقى / لعبة / محيط / لاعب / حيوانات / طبيعة ============
+    const CHANNEL_DEFS = [
+      { key: 'music',   label: 'الموسيقى' },
+      { key: 'game',    label: 'أصوات اللعبة' },
+      { key: 'ambient', label: 'أصوات المحيط' },
+      { key: 'player',  label: 'صوت اللاعب' },
+      { key: 'animals', label: 'أصوات الحيوانات' },
+      { key: 'nature',  label: 'أصوات الطبيعة' }
+    ];
+
+    function applyChannelVols() {
+      const am = window.__GAME_ENGINE__ && window.__GAME_ENGINE__.audioManager;
+      if (!am) return;
+      if (am.musicGain)    am.musicGain.gain.value    = ChannelVols.music / 10;
+      if (am.gameGain)     am.gameGain.gain.value     = ChannelVols.game / 10;
+      if (am.ambienceGain) am.ambienceGain.gain.value = ChannelVols.ambient / 10;
+      if (am.playerGain)   am.playerGain.gain.value   = ChannelVols.player / 10;
+      if (am.animalsGain)  am.animalsGain.gain.value  = ChannelVols.animals / 10;
+      if (am.natureGain)   am.natureGain.gain.value   = ChannelVols.nature / 10;
+    }
+
+    (function buildChannelUI() {
+      const group = document.getElementById('sound-system-group');
+      if (!group) return;
+      const sep = document.createElement('span');
+      sep.className = 'lobby-setting-label';
+      sep.textContent = 'الأصوات التفصيلية';
+      group.appendChild(sep);
+      for (const def of CHANNEL_DEFS) {
+        const row = document.createElement('div');
+        row.className = 'vol-channel-row';
+        let blocksHtml = '';
+        for (let v = 1; v <= 10; v++) {
+          blocksHtml += `<div class="vol-block" data-ch="${def.key}" data-val="${v}"></div>`;
+        }
+        row.innerHTML =
+          `<span class="vol-ch-label">${def.label}</span>` +
+          '<div class="vol-channel-ctrl">' +
+          `<button class="vol-math-btn vol-ch-minus" data-ch="${def.key}" type="button">−</button>` +
+          `<div class="vol-blocks vol-ch-blocks" dir="rtl">${blocksHtml}</div>` +
+          `<button class="vol-math-btn vol-ch-plus" data-ch="${def.key}" type="button">+</button>` +
+          '</div>';
+        group.appendChild(row);
+      }
+      const updateChannelUI = (key) => {
+        document.querySelectorAll(`.vol-block[data-ch="${key}"]`).forEach((b) => {
+          const val = parseInt(b.getAttribute('data-val'), 10);
+          b.classList.toggle('active', val <= ChannelVols[key]);
+        });
+      };
+      const setChannel = (key, val) => {
+        if (!key || !(key in ChannelVols)) return;
+        ChannelVols[key] = Math.max(0, Math.min(10, val));
+        saveChannelVols();
+        updateChannelUI(key);
+        applyChannelVols();
+      };
+      group.addEventListener('click', (e) => {
+        const minus = e.target.closest('.vol-ch-minus');
+        const plus = e.target.closest('.vol-ch-plus');
+        const block = e.target.closest('.vol-block');
+        if (minus) setChannel(minus.getAttribute('data-ch'), ChannelVols[minus.getAttribute('data-ch')] - 1);
+        else if (plus) setChannel(plus.getAttribute('data-ch'), ChannelVols[plus.getAttribute('data-ch')] + 1);
+        else if (block) setChannel(block.getAttribute('data-ch'), parseInt(block.getAttribute('data-val'), 10));
+      });
+      CHANNEL_DEFS.forEach((d) => updateChannelUI(d.key));
+    })();
   });
 })();
