@@ -4574,18 +4574,11 @@
 
 
   // =========================================================================
-  // 6.4b SMART CDN PRELOADER (تحقق سريع + تحميل متوازٍ + كاش دائم + إعادة محاولة تلقائية)
+  // 6.4b SMART ASSET PRELOADER (تجهيز ذكي: تحقق + تخزين مؤقت + كشف التحديثات)
   // =========================================================================
-  const ASSET_CACHE_NAME = 'marine-assets-v2';
+  const ASSET_CACHE_NAME = 'marine-assets-v1';
 
-  // ====== الإعدادات: غيّر الرابط فقط بعد رفع الموارد على Cloudflare ======
-  const CDN_BASE = 'https://skydata-bond.brxpara.workers.dev/'; // رابط Cloudflare Workers الخاص بك
-  const USE_CDN = true; // اجعلها false للتشغيل المحلي فقط بدون إنترنت
-  // ========================================================================
-  const CDN_READY = USE_CDN && CDN_BASE.indexOf('YOUR-SITE') === -1;
-  const VERSION_URL = CDN_BASE + 'version.json';
-
-  // كل موارد اللعبة (أصوات + صور واجهة + خطوط) — تُحمَّل مرة واحدة وتُخزَّن للأبد
+  // كل موارد اللعبة التي يجب تجهيزها مرة واحدة (أصوات + صور واجهة + خطوط)
   const ASSET_MANIFEST = [
     'voices/bluewhale.mp3',
     'voices/divingsound.mp3',
@@ -4634,7 +4627,8 @@
     'voices/PixelAE.ttf'
   ];
 
-  // رقم إصدار البناء: يُقرأ تلقائياً من ?v= في وسوم game.js و styles.css
+  // رقم إصدار البناء: يُقرأ تلقائياً من ?v= في وسوم game.js و styles.css —
+  // أي تحديث للكود أو التنسيق يغيّر الرقم ويفرض إعادة تحقق الموارد تلقائياً
   function getBuildVersion() {
     let v = '';
     try {
@@ -4647,7 +4641,7 @@
     return v || String(ASSET_MANIFEST.length);
   }
 
-  // تخزين مؤقت دائم (Cache API) — كل ملف يُحمَّل مرة واحدة فقط عبر الشبكة
+  // تخزين مؤقت دائم للموارد (Cache API) — يجعل الزيارة العائدة فحصاً فورياً
   const SmartLoader = {
     store: null,
     async init() {
@@ -4664,121 +4658,50 @@
     }
   };
 
-  // جلب مع إعادة محاولة تلقائية (تدرج زمني) ومهلة لكل محاولة
-  async function fetchWithRetry(url, tries, timeoutMs) {
-    let lastErr = null;
-    for (let i = 0; i < tries; i++) {
-      try {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), timeoutMs || 15000);
-        const r = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
-        clearTimeout(timer);
-        if (r.ok) return r;
-        lastErr = new Error('HTTP ' + r.status);
-      } catch (e) { lastErr = e; }
-      if (i < tries - 1) await new Promise((res) => setTimeout(res, 400 * (i + 1)));
-    }
-    throw lastErr;
-  }
-
-  // تنفيذ متوازٍ بست قنوات في نفس الوقت (Parallel Pool)
-  async function runPool(items, worker, concurrency) {
-    const queue = items.slice();
-    const lanes = Array.from({ length: Math.min(concurrency || 6, queue.length) }, async () => {
-      while (queue.length) {
-        const it = queue.shift();
-        await worker(it);
-      }
-    });
-    await Promise.all(lanes);
-  }
-
-  // رابط المورد: من CDN إن كان جاهزاً، وإلا المسار المحلي
-  function assetUrl(file) {
-    return CDN_READY ? (CDN_BASE + file) : ('./' + file);
-  }
-
-  // النظام الذكي بالترتيب: تحقق سريع ← كاش فوري للعائد ← تحميل متوازٍ للناقص/المحدّث ← إنقاذ تلقائي
-  async function prepareAssets(onProgress, onStatus) {
+  // التجهيز الذكي:
+  // - زائر أول: تحميل كل الموارد بشريط حقيقي يتدرج حتى 99% ثم اكتمال 100%.
+  // - زائر عائد (نفس الإصدار): تحقق فوري من وجود كل شيء — إن نقص شيء يُحمّل الناقص فقط.
+  // - كود محدّث (?v= جديد): إعادة تجهيز الموارد مرة واحدة ثم حفظ الإصدار الجديد.
+  async function prepareAssets(onProgress) {
     await SmartLoader.init();
-    onStatus(location.protocol === 'https:' ? 'اتصال آمن' : 'وضع محلي');
-    onProgress(2);
+    const version = getBuildVersion();
+    let done = false;
+    try { done = localStorage.getItem('marine_assets_done') === '1'; } catch (_) {}
+    let sameVersion = false;
+    try { sameVersion = localStorage.getItem('marine_assets_ver') === version; } catch (_) {}
 
-    // 1) التحقق السريع: طلب واحد خفيف فقط (version.json) لمقارنة الإصدار مع الخادم
-    const localVersion = getBuildVersion();
-    let serverVersion = null;
-    if (CDN_READY && navigator.onLine !== false) {
-      try {
-        const r = await fetchWithRetry(VERSION_URL + '?t=' + Date.now(), 2, 4000);
-        serverVersion = (await r.json()).version || null;
-      } catch (_) {
-        onStatus('الخادم غير متاح — العمل من الذاكرة/المحلي');
+    // وضع التحقق السريع للزائر العائد: فحص وجود كل مورد في الذاكرة المؤقتة فقط
+    if (done && sameVersion && SmartLoader.store) {
+      let missing = 0;
+      for (let i = 0; i < ASSET_MANIFEST.length; i++) {
+        if (!(await SmartLoader.get(ASSET_MANIFEST[i]))) missing++;
+      }
+      if (missing === 0) {
+        onProgress(100);
+        return;
       }
     }
-    const target = serverVersion || localVersion;
-    let stored = null;
-    try { stored = localStorage.getItem('marine_assets_ver'); } catch (_) {}
 
-    // 2) زائر عائد: تحقق فوري من اكتمال الكاش — بلا أي تنزيل إن لم يوجد تحديث معلن
-    const cacheComplete = async () => {
-      if (!SmartLoader.store) return false;
-      for (const f of ASSET_MANIFEST) {
-        if (!(await SmartLoader.get(assetUrl(f)))) return false;
-      }
-      return true;
-    };
-    if (await cacheComplete() && (!serverVersion || stored === target)) {
-      onStatus('كل الموارد جاهزة');
-      onProgress(100);
-      return true;
-    }
-
-    // 3) تحميل متوازٍ: الناقص أو المُحدَّث فقط، مع رجوع تلقائي للملف المحلي عند فشل الشبكة
-    onStatus('تجهيز الموارد...');
-    const fresh = !!(serverVersion && stored !== target);
-    const failed = [];
-    let done = 0;
-    const report = () => onProgress(Math.min(99, 2 + Math.round((done / ASSET_MANIFEST.length) * 97)));
-    report();
-    await runPool(ASSET_MANIFEST, async (file) => {
-      const key = assetUrl(file);
+    // وضع التحميل: جلب الناقص فقط مع تقدم حقيقي يتوقف عند 99% ثم اكتمال
+    let loaded = 0;
+    for (let i = 0; i < ASSET_MANIFEST.length; i++) {
+      const url = ASSET_MANIFEST[i];
       try {
-        let res = await SmartLoader.get(key);
-        if (!res || fresh) {
-          try {
-            res = await fetchWithRetry(key, 3, 15000);
-          } catch (_) {
-            res = await fetchWithRetry('./' + file, 2, 10000); // رجوع تلقائي للمحلي
-          }
-          await SmartLoader.put(key, res);
+        const cached = await SmartLoader.get(url);
+        if (!cached) {
+          const res = await fetch(url);
+          if (res.ok) await SmartLoader.put(url, res);
         }
-      } catch (_) { failed.push(file); }
-      done++;
-      report();
-    }, 6);
-
-    // 4) جولة إنقاذ أخيرة للفاشل من المسار المحلي قبل إعلان الخطأ
-    for (const file of failed.slice()) {
-      try {
-        const res = await fetchWithRetry('./' + file, 2, 10000);
-        await SmartLoader.put(assetUrl(file), res);
-        failed.splice(failed.indexOf(file), 1);
       } catch (_) {}
-    }
-
-    if (failed.length > 0) {
-      onStatus('تعذر تجهيز ' + failed.length + ' مورد');
-      return false; // لا دخول للعبة قبل اكتمال كل الموارد
+      loaded++;
+      onProgress(Math.min(99, Math.round((loaded / ASSET_MANIFEST.length) * 99)));
     }
     try {
-      localStorage.setItem('marine_assets_ver', target);
+      localStorage.setItem('marine_assets_ver', version);
       localStorage.setItem('marine_assets_done', '1');
     } catch (_) {}
-    onStatus('اكتمل التجهيز');
     onProgress(100);
-    return true;
   }
-
 
   // =========================================================================
   // 6.5 PRELOADER & INTRO FLOW MANAGER
@@ -5027,18 +4950,8 @@
         audioCtx.resume().catch(() => {});
       }
 
-      // المرحلة 1: التحقق السريع ثم تجهيز كل الموارد — الشريط يتقدم حتى 85%
-      const statusEl = document.getElementById('loading-status');
-      const setLoadStatus = (t) => { if (statusEl) statusEl.textContent = t; };
-      let assetsOk = await prepareAssets((p) => this.setProgress(2 + Math.round(p * 0.83)), setLoadStatus);
-      if (!assetsOk) {
-        setLoadStatus('إعادة المحاولة تلقائياً...');
-        assetsOk = await prepareAssets((p) => this.setProgress(2 + Math.round(p * 0.83)), setLoadStatus);
-        if (!assetsOk) {
-          setLoadStatus('خطأ في الشبكة — تحقق من الاتصال ثم أعد فتح اللعبة');
-          return; // لا بدء للعبة قبل اكتمال الموارد
-        }
-      }
+      // المرحلة 1: تجهيز كل موارد اللعبة (صور/أصوات/خطوط) — الشريط يتقدم حتى 85%
+      await prepareAssets((p) => this.setProgress(2 + Math.round(p * 0.83)));
 
       let loaded = 0;
       const TOTAL_SOUNDS = 4;
@@ -5054,7 +4967,7 @@
           } catch (_) { /* نكمل بالتحميل العادي */ }
         }
         // الذاكرة الذكية: صوت جاهز مخزّن من زيارة سابقة — يُفك ترميزه دون إعادة قراءة الملف
-        const cachedRes = await SmartLoader.get(assetUrl(url)) || await SmartLoader.get(url) || await SmartLoader.get('./' + url);
+        const cachedRes = await SmartLoader.get(url);
         if (cachedRes && audioCtx) {
           try {
             const ab = await cachedRes.arrayBuffer();

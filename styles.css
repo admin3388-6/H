@@ -610,14 +610,6 @@ canvas#gameCanvas {
   );
 }
 
-.loading-status {
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: #9aa0a6;
-  text-align: center;
-  min-height: 1em;
-}
-
 /* تم استبداله: زر الخروج */
 
 /* قواعد الإخفاء العامة الصارمة */
